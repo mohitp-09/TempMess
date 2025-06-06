@@ -80,18 +80,23 @@ export const searchUser = async (searchTerm) => {
   }
 };
 
-// Friend requests
+// Friend requests - Updated to use correct endpoint format
 export const sendFriendRequest = async (senderUsername, receiverUsername) => {
   try {
     const response = await axios.post('http://localhost:8080/friends/request', null, {
-      params: { senderUsername, receiverUsername },
+      params: { 
+        senderUsername: senderUsername, 
+        receiverUsername: receiverUsername 
+      },
       withCredentials: true,
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
       }
     });
     return response.data;
   } catch (error) {
+    console.error('Friend request error:', error.response?.data);
     throw new Error(error.response?.data || 'Failed to send friend request');
   }
 };
@@ -102,11 +107,13 @@ export const acceptFriendRequest = async (requestId) => {
       params: { requestId },
       withCredentials: true,
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
       }
     });
     return response.data;
   } catch (error) {
+    console.error('Accept friend request error:', error.response?.data);
     throw new Error(error.response?.data || 'Failed to accept friend request');
   }
 };
@@ -117,11 +124,13 @@ export const rejectFriendRequest = async (requestId) => {
       params: { requestId },
       withCredentials: true,
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
       }
     });
     return response.data;
   } catch (error) {
+    console.error('Reject friend request error:', error.response?.data);
     throw new Error(error.response?.data || 'Failed to reject friend request');
   }
 };

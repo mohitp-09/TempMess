@@ -34,7 +34,13 @@ const AddUserModal = ({ isOpen, onClose }) => {
     try {
       // Get current user's username from localStorage or auth store
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const senderUsername = currentUser.username || 'currentUser'; // You might need to adjust this
+      let senderUsername = currentUser.username;
+      
+      // If username is not available, try to extract from token or use email
+      if (!senderUsername) {
+        // You might need to decode JWT token or make an API call to get current user info
+        senderUsername = currentUser.email || 'currentUser'; // Fallback
+      }
       
       await sendFriendRequest(senderUsername, searchResult.username);
       toast.success('Friend request sent successfully!');
