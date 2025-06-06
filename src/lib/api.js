@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Configure axios with base URL
-const API_BASE_URL = 'https://c9ff-2401-4900-1c18-636c-f487-e247-b581-e295.ngrok-free.app/api';
+const API_BASE_URL = 'http://localhost:8080/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -60,6 +60,88 @@ export const register = async (userData) => {
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message || 'Registration failed');
+  }
+};
+
+// User search
+export const searchUser = async (searchTerm) => {
+  try {
+    const params = {};
+    if (searchTerm.includes('@')) {
+      params.email = searchTerm;
+    } else {
+      params.username = searchTerm;
+    }
+    
+    const response = await api.get('/users/search', { params });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'User search failed');
+  }
+};
+
+// Friend requests
+export const sendFriendRequest = async (senderUsername, receiverUsername) => {
+  try {
+    const response = await axios.post('http://localhost:8080/friends/request', null, {
+      params: { senderUsername, receiverUsername },
+      withCredentials: true,
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data || 'Failed to send friend request');
+  }
+};
+
+export const acceptFriendRequest = async (requestId) => {
+  try {
+    const response = await axios.post('http://localhost:8080/friends/accept', null, {
+      params: { requestId },
+      withCredentials: true,
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data || 'Failed to accept friend request');
+  }
+};
+
+export const rejectFriendRequest = async (requestId) => {
+  try {
+    const response = await axios.post('http://localhost:8080/friends/reject', null, {
+      params: { requestId },
+      withCredentials: true,
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data || 'Failed to reject friend request');
+  }
+};
+
+// Notifications
+export const getUnreadNotifications = async () => {
+  try {
+    const response = await api.get('/notifications/unread');
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to fetch notifications');
+  }
+};
+
+export const markNotificationAsRead = async (notificationId) => {
+  try {
+    const response = await api.post(`/notifications/read/${notificationId}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to mark notification as read');
   }
 };
 

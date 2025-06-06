@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { LogOut, MessageSquare, Settings, User } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
+import NotificationDropdown from "./NotificationDropdown";
 
 const Navbar = () => {
   const { isAuthenticated, logout } = useAuthStore();
@@ -30,6 +31,7 @@ const Navbar = () => {
           <div className="flex items-center gap-2">
             {isAuthenticated ? (
               <>
+                <NotificationDropdown />
                 <Link
                   to="/profile"
                   className="btn btn-sm gap-2 transition-colors"
