@@ -38,9 +38,12 @@ const AddUserModal = ({ isOpen, onClose }) => {
       
       // If username is not available, try to extract from token or use email
       if (!senderUsername) {
-        // You might need to decode JWT token or make an API call to get current user info
-        senderUsername = currentUser.email || 'currentUser'; // Fallback
+        // For now, let's use a test username - you'll need to implement proper user context
+        senderUsername = 'testUser'; // Replace this with actual current user logic
+        console.warn('Using test username. Implement proper current user context.');
       }
+      
+      console.log('Sending friend request from:', senderUsername, 'to:', searchResult.username);
       
       await sendFriendRequest(senderUsername, searchResult.username);
       toast.success('Friend request sent successfully!');
@@ -48,6 +51,7 @@ const AddUserModal = ({ isOpen, onClose }) => {
       setSearchTerm('');
       onClose();
     } catch (error) {
+      console.error('Friend request failed:', error);
       toast.error(error.message);
     } finally {
       setIsSendingRequest(false);

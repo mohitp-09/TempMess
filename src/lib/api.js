@@ -80,9 +80,11 @@ export const searchUser = async (searchTerm) => {
   }
 };
 
-// Friend requests - Updated to use correct endpoint format
+// Friend requests - Using direct URL without /api prefix to match your backend
 export const sendFriendRequest = async (senderUsername, receiverUsername) => {
   try {
+    console.log('Sending friend request:', { senderUsername, receiverUsername });
+    
     const response = await axios.post('http://localhost:8080/friends/request', null, {
       params: { 
         senderUsername: senderUsername, 
@@ -94,9 +96,12 @@ export const sendFriendRequest = async (senderUsername, receiverUsername) => {
         'Content-Type': 'application/json'
       }
     });
+    
+    console.log('Friend request response:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Friend request error:', error.response?.data);
+    console.error('Friend request error:', error.response?.data || error.message);
+    console.error('Full error:', error);
     throw new Error(error.response?.data || 'Failed to send friend request');
   }
 };
