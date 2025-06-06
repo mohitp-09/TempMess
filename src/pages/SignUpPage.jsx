@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare, User } from 'lucide-react';
 import AuthImagePattern from '../components/AuthImagePattern';
+import { register } from '../lib/api';
+import toast from 'react-hot-toast';
+import { useAuthStore } from '../store/useAuthStore';
 
 const SignUpPage = () => {
+  const navigate = useNavigate();
+  const { login: loginStore } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [formData, setFormData] = useState({
@@ -14,38 +19,43 @@ const SignUpPage = () => {
 
   const validateForm = () => {
     if (!formData.fullName.trim()) {
-      console.error("Full name is required");
+      toast.error("Full name is required");
       return false;
     }
     if (!formData.email.trim()) {
-      console.error("Email is required");
+      toast.error("Email is required");
       return false;
     }
     if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      console.error("Invalid email format");
+      toast.error("Invalid email format");
       return false;
     }
     if (!formData.password) {
-      console.error("Password is required");
+      toast.error("Password is required");
       return false;
     }
     if (formData.password.length < 6) {
-      console.error("Password must be at least 6 characters");
+      toast.error("Password must be at least 6 characters");
       return false;
     }
     return true;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const isValid = validateForm();
-    if (isValid) {
-      setIsSigningUp(true);
-      setTimeout(() => {
-        setIsSigningUp(false);
-        console.log('Signup attempted with:', formData);
-        // Redirect logic goes here
-      }, 1500);
+    if (!validateForm()) return;
+
+    setIsSigningUp(true);
+    try {
+      const response = await register(formData);
+      localStorage.setItem('token', response.token);
+      loginStore(); // Update auth state
+      toast.success('Account created successfully!');
+      navigate('/');
+    } catch (error) {
+      toast.error(error.message || 'Failed to create account');
+    } finally {
+      setIsSigningUp(false);
     }
   };
 
@@ -77,6 +87,7 @@ const SignUpPage = () => {
                   placeholder="John Doe"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  required
                 />
               </div>
             </div>
@@ -93,6 +104,7 @@ const SignUpPage = () => {
                   placeholder="you@example.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
                 />
               </div>
             </div>
@@ -109,6 +121,7 @@ const SignUpPage = () => {
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
                 />
                 <button
                   type="button"

@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare } from 'lucide-react';
 import AuthImagePattern from '../components/AuthImagePattern';
+import { login } from '../lib/api';
+import toast from 'react-hot-toast';
+import { useAuthStore } from '../store/useAuthStore';
 
 const LoginPage = () => {
+  const navigate = useNavigate();
+  const { login: loginStore } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [formData, setFormData] = useState({
@@ -15,12 +20,17 @@ const LoginPage = () => {
     e.preventDefault();
     setIsLoggingIn(true);
 
-    // Simulate login process
-    setTimeout(() => {
+    try {
+      const response = await login(formData);
+      localStorage.setItem('token', response.token);
+      loginStore(); // Update auth state
+      toast.success('Successfully logged in!');
+      navigate('/');
+    } catch (error) {
+      toast.error(error.message || 'Failed to login');
+    } finally {
       setIsLoggingIn(false);
-      console.log('Login attempted with:', formData);
-      // In a real app, you would redirect after successful login
-    }, 1500);
+    }
   };
 
   return (
@@ -55,6 +65,7 @@ const LoginPage = () => {
                   placeholder="you@example.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
                 />
               </div>
             </div>
@@ -73,6 +84,7 @@ const LoginPage = () => {
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
                 />
                 <button
                   type="button"

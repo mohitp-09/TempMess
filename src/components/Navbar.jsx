@@ -1,7 +1,15 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { LogOut, MessageSquare, Settings, User } from "lucide-react";
+import { useAuthStore } from "../store/useAuthStore";
 
 const Navbar = () => {
+  const { isAuthenticated, logout } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <header
@@ -20,32 +28,44 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <Link
-              to={"/settings"}
-              className={`
-              btn btn-sm gap-2 transition-colors
-
-              `}
-            >
-              <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">Settings</span>
-            </Link>
-
-            <Link
-              to={"/Profile"}
-              className={`
-              btn btn-sm gap-2 transition-colors
-
-              `}
-            >
-              <User  className="w-4 h-4" />
-              <span className="hidden sm:inline">Profile</span>
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link
+                  to="/profile"
+                  className="btn btn-sm gap-2 transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  <span className="hidden sm:inline">Profile</span>
+                </Link>
+                <Link
+                  to="/settings"
+                  className="btn btn-sm gap-2 transition-colors"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span className="hidden sm:inline">Settings</span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="btn btn-sm gap-2 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline">Logout</span>
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="btn btn-sm gap-2 transition-colors"
+              >
+                <User className="w-4 h-4" />
+                <span className="hidden sm:inline">Login</span>
+              </Link>
+            )}
           </div>
-
         </div>
       </div>
     </header>
   );
 };
+
 export default Navbar;
