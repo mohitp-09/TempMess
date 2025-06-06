@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Configure axios with base URL
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'https://c9ff-2401-4900-1c18-636c-f487-e247-b581-e295.ngrok-free.app/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
