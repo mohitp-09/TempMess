@@ -104,7 +104,34 @@ export const sendFriendRequest = async (senderUsername, receiverUsername) => {
   } catch (error) {
     console.error('Friend request error:', error.response?.data || error.message);
     console.error('Full error:', error);
-    throw new Error(error.response?.data || 'Failed to send friend request');
+    
+    // Handle specific error cases
+    const errorMessage = error.response?.data || error.message;
+    
+    // Check for common "already exists" error patterns
+    if (typeof errorMessage === 'string') {
+      const lowerErrorMessage = errorMessage.toLowerCase();
+      
+      if (lowerErrorMessage.includes('already') || 
+          lowerErrorMessage.includes('exists') || 
+          lowerErrorMessage.includes('pending') ||
+          lowerErrorMessage.includes('duplicate')) {
+        throw new Error('FRIEND_REQUEST_EXISTS');
+      }
+      
+      if (lowerErrorMessage.includes('not found') || 
+          lowerErrorMessage.includes('user not found')) {
+        throw new Error('USER_NOT_FOUND');
+      }
+      
+      if (lowerErrorMessage.includes('already friends') || 
+          lowerErrorMessage.includes('friendship exists')) {
+        throw new Error('ALREADY_FRIENDS');
+      }
+    }
+    
+    // Default error
+    throw new Error(errorMessage || 'Failed to send friend request');
   }
 };
 

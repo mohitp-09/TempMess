@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Search, UserPlus, Loader2 } from 'lucide-react';
+import { X, Search, UserPlus, Loader2, Check } from 'lucide-react';
 import { searchUser, sendFriendRequest } from '../lib/api';
 import { getCurrentUserFromToken } from '../lib/jwtUtils';
 import toast from 'react-hot-toast';
@@ -9,6 +9,7 @@ const AddUserModal = ({ isOpen, onClose }) => {
   const [searchResult, setSearchResult] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isSendingRequest, setIsSendingRequest] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
@@ -17,6 +18,7 @@ const AddUserModal = ({ isOpen, onClose }) => {
     }
 
     setIsSearching(true);
+    setRequestSent(false); // Reset request sent status
     try {
       const user = await searchUser(searchTerm.trim());
       setSearchResult(user);
@@ -43,16 +45,43 @@ const AddUserModal = ({ isOpen, onClose }) => {
       
       const senderUsername = currentUser.username;
       
+      // Check if trying to send request to themselves
+      if (senderUsername === searchResult.username) {
+        toast.error("You can't send a friend request to yourself!");
+        return;
+      }
+      
       console.log('Sending friend request from:', senderUsername, 'to:', searchResult.username);
       
       await sendFriendRequest(senderUsername, searchResult.username);
       toast.success('Friend request sent successfully!');
-      setSearchResult(null);
-      setSearchTerm('');
-      onClose();
+      setRequestSent(true);
+      
+      // Auto close modal after 2 seconds
+      setTimeout(() => {
+        setSearchResult(null);
+        setSearchTerm('');
+        setRequestSent(false);
+        onClose();
+      }, 2000);
+      
     } catch (error) {
       console.error('Friend request failed:', error);
-      toast.error(error.message);
+      
+      // Handle specific error cases with user-friendly messages
+      switch (error.message) {
+        case 'FRIEND_REQUEST_EXISTS':
+          toast.error('You have already sent a friend request to this user!');
+          break;
+        case 'USER_NOT_FOUND':
+          toast.error('User not found. Please check the username or email.');
+          break;
+        case 'ALREADY_FRIENDS':
+          toast.success('You are already friends with this user!');
+          break;
+        default:
+          toast.error(error.message || 'Failed to send friend request');
+      }
     } finally {
       setIsSendingRequest(false);
     }
@@ -61,6 +90,7 @@ const AddUserModal = ({ isOpen, onClose }) => {
   const handleClose = () => {
     setSearchTerm('');
     setSearchResult(null);
+    setRequestSent(false);
     onClose();
   };
 
@@ -135,18 +165,25 @@ const AddUserModal = ({ isOpen, onClose }) => {
                 </div>
               </div>
               
-              <button
-                onClick={handleSendFriendRequest}
-                disabled={isSendingRequest}
-                className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-primary text-primary-content rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSendingRequest ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <UserPlus className="size-4" />
-                )}
-                {isSendingRequest ? 'Sending...' : 'Send Friend Request'}
-              </button>
+              {requestSent ? (
+                <div className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-green-500 text-white rounded-lg">
+                  <Check className="size-4" />
+                  Request Sent!
+                </div>
+              ) : (
+                <button
+                  onClick={handleSendFriendRequest}
+                  disabled={isSendingRequest}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-primary text-primary-content rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSendingRequest ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <UserPlus className="size-4" />
+                  )}
+                  {isSendingRequest ? 'Sending...' : 'Send Friend Request'}
+                </button>
+              )}
             </div>
           )}
 
