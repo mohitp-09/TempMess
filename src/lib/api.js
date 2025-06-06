@@ -45,11 +45,6 @@ export const login = async (credentials) => {
       password: credentials.password
     });
     
-    // Store user data including username
-    if (response.data.user) {
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-    }
-    
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message || 'Login failed');
@@ -64,24 +59,9 @@ export const register = async (userData) => {
       password: userData.password
     });
     
-    // Store user data including username
-    if (response.data.user) {
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-    }
-    
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message || 'Registration failed');
-  }
-};
-
-// Get current user info
-export const getCurrentUser = async () => {
-  try {
-    const response = await api.get('/auth/me'); // You'll need this endpoint in your backend
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.message || 'Failed to get current user');
   }
 };
 

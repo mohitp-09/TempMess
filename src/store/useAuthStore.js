@@ -1,17 +1,32 @@
 import { create } from "zustand";
+import { getCurrentUserFromToken, isTokenExpired } from "../lib/jwtUtils";
 
 const useAuthStore = create((set, get) => ({
-  isAuthenticated: !!localStorage.getItem('token'),
-  user: JSON.parse(localStorage.getItem('user') || 'null'),
+  isAuthenticated: (() => {
+    const token = localStorage.getItem('token');
+    return token && !isTokenExpired(token);
+  })(),
+  
+  user: (() => {
+    const token = localStorage.getItem('token');
+    if (token && !isTokenExpired(token)) {
+      return getCurrentUserFromToken();
+    }
+    return null;
+  })(),
   
   login: (userData) => {
+    // If userData contains a token, decode it to get user info
+    let userInfo = userData;
+    if (userData.token) {
+      const decodedUser = getCurrentUserFromToken();
+      userInfo = { ...userData, ...decodedUser };
+    }
+    
     set({ 
       isAuthenticated: true,
-      user: userData 
+      user: userInfo 
     });
-    if (userData) {
-      localStorage.setItem('user', JSON.stringify(userData));
-    }
   },
   
   logout: () => {
@@ -25,7 +40,17 @@ const useAuthStore = create((set, get) => ({
   
   updateUser: (userData) => {
     set({ user: userData });
-    localStorage.setItem('user', JSON.stringify(userData));
+  },
+  
+  // Method to refresh user data from token
+  refreshUserFromToken: () => {
+    const token = localStorage.getItem('token');
+    if (token && !isTokenExpired(token)) {
+      const userInfo = getCurrentUserFromToken();
+      set({ user: userInfo });
+      return userInfo;
+    }
+    return null;
   }
 }));
 

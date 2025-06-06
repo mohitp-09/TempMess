@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Search, UserPlus, Loader2 } from 'lucide-react';
-import { searchUser, sendFriendRequest, getCurrentUser } from '../lib/api';
+import { searchUser, sendFriendRequest } from '../lib/api';
+import { getCurrentUserFromToken } from '../lib/jwtUtils';
 import toast from 'react-hot-toast';
 
 const AddUserModal = ({ isOpen, onClose }) => {
@@ -32,28 +33,15 @@ const AddUserModal = ({ isOpen, onClose }) => {
 
     setIsSendingRequest(true);
     try {
-      // Try to get current user from localStorage first
-      let currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      let senderUsername = currentUser.username;
+      // Get current user's username from JWT token
+      const currentUser = getCurrentUserFromToken();
       
-      // If not available in localStorage, try to fetch from API
-      if (!senderUsername) {
-        try {
-          currentUser = await getCurrentUser();
-          senderUsername = currentUser.username;
-          // Update localStorage with fresh user data
-          localStorage.setItem('user', JSON.stringify(currentUser));
-        } catch (error) {
-          console.error('Failed to get current user:', error);
-          toast.error('Unable to get current user information. Please try logging in again.');
-          return;
-        }
-      }
-      
-      if (!senderUsername) {
-        toast.error('Current user information not available. Please try logging in again.');
+      if (!currentUser || !currentUser.username) {
+        toast.error('Unable to get current user information. Please try logging in again.');
         return;
       }
+      
+      const senderUsername = currentUser.username;
       
       console.log('Sending friend request from:', senderUsername, 'to:', searchResult.username);
       
