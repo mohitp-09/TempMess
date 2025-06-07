@@ -15,37 +15,71 @@ class WebSocketService {
   connect(username) {
     return new Promise((resolve, reject) => {
       try {
-        // Use the same endpoint as your working HTML example
-        const socket = new SockJS('http://localhost:8080/chat');
-        this.stompClient = Stomp.over(socket);
+        // Try different possible WebSocket endpoints
+        const possibleEndpoints = [
+          'http://localhost:8080/ws',
+          'http://localhost:8080/chat',
+          'http://localhost:8080/websocket'
+        ];
         
-        // Disable debug logging in production
-        this.stompClient.debug = null;
-
-        this.stompClient.connect(
-          {}, // Empty headers object like in your HTML example
-          (frame) => {
-            console.log('Connected to WebSocket:', frame);
-            this.connected = true;
-            this.reconnectAttempts = 0;
-            
-            // Subscribe to private messages for this user
-            this.subscribeToPrivateMessages(username);
-            
-            resolve(frame);
-          },
-          (error) => {
-            console.error('WebSocket connection error:', error);
-            this.connected = false;
-            this.handleReconnect(username);
-            reject(error);
-          }
-        );
+        // Start with the first endpoint
+        this.tryConnect(possibleEndpoints, 0, username, resolve, reject);
       } catch (error) {
         console.error('Failed to create WebSocket connection:', error);
         reject(error);
       }
     });
+  }
+
+  tryConnect(endpoints, index, username, resolve, reject) {
+    if (index >= endpoints.length) {
+      reject(new Error('All WebSocket endpoints failed'));
+      return;
+    }
+
+    const endpoint = endpoints[index];
+    console.log(`Trying WebSocket endpoint: ${endpoint}`);
+    
+    try {
+      const socket = new SockJS(endpoint);
+      this.stompClient = Stomp.over(socket);
+      
+      // Enable debug logging to see what's happening
+      this.stompClient.debug = (str) => {
+        console.log('STOMP Debug:', str);
+      };
+
+      // Try with different header configurations
+      const connectHeaders = {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'username': username
+      };
+
+      this.stompClient.connect(
+        connectHeaders,
+        (frame) => {
+          console.log('Connected to WebSocket:', frame);
+          this.connected = true;
+          this.reconnectAttempts = 0;
+          
+          // Subscribe to private messages for this user
+          this.subscribeToPrivateMessages(username);
+          
+          resolve(frame);
+        },
+        (error) => {
+          console.error(`WebSocket connection error on ${endpoint}:`, error);
+          this.connected = false;
+          
+          // Try next endpoint
+          this.tryConnect(endpoints, index + 1, username, resolve, reject);
+        }
+      );
+    } catch (error) {
+      console.error(`Failed to create connection to ${endpoint}:`, error);
+      // Try next endpoint
+      this.tryConnect(endpoints, index + 1, username, resolve, reject);
+    }
   }
 
   subscribeToPrivateMessages(username) {
@@ -54,30 +88,44 @@ class WebSocketService {
       return;
     }
 
-    // Use the exact same subscription path as your HTML example
-    const subscription = this.stompClient.subscribe(
+    // Try different subscription patterns
+    const subscriptionPaths = [
       `/user/${username}/private`,
-      (message) => {
-        try {
-          const messageData = JSON.parse(message.body);
-          console.log('Received private message:', messageData);
-          
-          // Notify all registered message handlers
-          this.messageHandlers.forEach((handler) => {
-            try {
-              handler(messageData);
-            } catch (error) {
-              console.error('Error in message handler:', error);
-            }
-          });
-        } catch (error) {
-          console.error('Error parsing received message:', error);
-        }
-      }
-    );
+      `/user/${username}/queue/private`,
+      `/topic/private/${username}`,
+      `/queue/private/${username}`
+    ];
 
-    this.subscriptions.set('private', subscription);
-    console.log(`Subscribed to private messages for user: ${username}`);
+    subscriptionPaths.forEach((path, index) => {
+      try {
+        console.log(`Attempting to subscribe to: ${path}`);
+        const subscription = this.stompClient.subscribe(
+          path,
+          (message) => {
+            try {
+              const messageData = JSON.parse(message.body);
+              console.log('Received private message:', messageData);
+              
+              // Notify all registered message handlers
+              this.messageHandlers.forEach((handler) => {
+                try {
+                  handler(messageData);
+                } catch (error) {
+                  console.error('Error in message handler:', error);
+                }
+              });
+            } catch (error) {
+              console.error('Error parsing received message:', error);
+            }
+          }
+        );
+
+        this.subscriptions.set(`private-${index}`, subscription);
+        console.log(`Successfully subscribed to: ${path}`);
+      } catch (error) {
+        console.error(`Failed to subscribe to ${path}:`, error);
+      }
+    });
   }
 
   sendPrivateMessage(sender, receiver, message) {
@@ -86,22 +134,39 @@ class WebSocketService {
       throw new Error('WebSocket not connected');
     }
 
-    // Use the exact same payload structure as your HTML example
+    // Try different message destinations
+    const destinations = [
+      '/app/sendPrivateMessage',
+      '/app/private',
+      '/app/chat/private'
+    ];
+
     const messageData = {
       sender: sender,
       receiver: receiver,
-      message: message
+      message: message,
+      timestamp: new Date().toISOString()
     };
 
-    try {
-      // Use the exact same destination as your HTML example
-      this.stompClient.send('/app/sendPrivateMessage', {}, JSON.stringify(messageData));
-      console.log('Message sent:', messageData);
-      return messageData;
-    } catch (error) {
-      console.error('Error sending message:', error);
-      throw error;
+    let messageSent = false;
+    
+    for (const destination of destinations) {
+      try {
+        console.log(`Trying to send message to: ${destination}`);
+        this.stompClient.send(destination, {}, JSON.stringify(messageData));
+        console.log('Message sent successfully:', messageData);
+        messageSent = true;
+        break;
+      } catch (error) {
+        console.error(`Failed to send to ${destination}:`, error);
+      }
     }
+
+    if (!messageSent) {
+      throw new Error('Failed to send message to any destination');
+    }
+
+    return messageData;
   }
 
   addMessageHandler(id, handler) {
@@ -131,7 +196,11 @@ class WebSocketService {
     if (this.stompClient && this.connected) {
       // Unsubscribe from all subscriptions
       this.subscriptions.forEach((subscription) => {
-        subscription.unsubscribe();
+        try {
+          subscription.unsubscribe();
+        } catch (error) {
+          console.error('Error unsubscribing:', error);
+        }
       });
       this.subscriptions.clear();
       
@@ -139,9 +208,13 @@ class WebSocketService {
       this.messageHandlers.clear();
       
       // Disconnect
-      this.stompClient.disconnect(() => {
-        console.log('Disconnected from WebSocket');
-      });
+      try {
+        this.stompClient.disconnect(() => {
+          console.log('Disconnected from WebSocket');
+        });
+      } catch (error) {
+        console.error('Error disconnecting:', error);
+      }
       
       this.connected = false;
       this.stompClient = null;
