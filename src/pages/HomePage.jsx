@@ -2,10 +2,19 @@ import { useState } from "react";
 import Sidebar from "../components/Sidebar";
 import ChatContainer from "../components/ChatContainer";
 import NoChatSelected from "../components/NoChatSelected";
-import { authUser } from "../data/mockData";
+import { getCurrentUserFromToken } from "../lib/jwtUtils";
 
 const HomePage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
+
+  // Get current user from JWT token
+  const currentUser = getCurrentUserFromToken();
+  const authUser = {
+    _id: currentUser?.id || "authUserId",
+    fullName: currentUser?.username || currentUser?.name || "You",
+    profilePic: "/avatar.png",
+    isOnline: true,
+  };
 
   const handleSelectUser = (user) => {
     setSelectedUser(user);
