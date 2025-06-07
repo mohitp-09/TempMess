@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Camera, Mic, Plus, Send, X, Image, Smile } from "lucide-react";
+import { Camera, Mic, Plus, Send, X, Image, Smile, MessageSquare } from "lucide-react";
 
 const MessageInput = ({ onSendMessage }) => {
   const [text, setText] = useState("");
@@ -103,7 +103,10 @@ const MessageInput = ({ onSendMessage }) => {
                 onClick={() => setShowDrawer(!showDrawer)}
                 title="Attach"
               >
-                <Plus size={18} className={`text-base-content/60 group-hover:text-base-content transition-all duration-200 ${showDrawer ? 'rotate-45' : ''}`} />
+                {/* CHANGED: Using MessUp logo instead of Plus icon */}
+                <div className="size-5 rounded bg-primary/10 flex items-center justify-center">
+                  <MessageSquare size={14} className={`text-primary transition-all duration-200 ${showDrawer ? 'rotate-12' : ''}`} />
+                </div>
               </button>
             </div>
           </div>

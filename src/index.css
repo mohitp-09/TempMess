@@ -2,19 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Hide scrollbars but keep functionality */
-.no-scrollbar {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
+/* COMPLETELY HIDE ALL HORIZONTAL SCROLLBARS */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
 }
 
-.no-scrollbar::-webkit-scrollbar { 
-  display: none;  /* Safari and Chrome */
+*::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
 }
 
-/* Custom scrollbar for main content areas */
+/* Force no horizontal overflow anywhere */
+html, body {
+  overflow-x: hidden;
+}
+
+/* Ensure all containers don't overflow horizontally */
+.container, .flex, .grid {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar for vertical scrolling only */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
+  display: block; /* Allow vertical scrollbars */
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -28,4 +45,10 @@
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.2);
+}
+
+/* Ensure no horizontal scrollbars on specific elements */
+.no-horizontal-scroll {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
 }
