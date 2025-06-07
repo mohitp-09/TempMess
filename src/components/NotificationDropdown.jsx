@@ -92,42 +92,22 @@ const NotificationDropdown = () => {
       
       console.log('Raw notifications from backend:', notificationsArray);
       
-      // Process notifications to get sender details using reference_id
+      // Simple approach: reference_id = sender's user ID
       const notificationsWithSenderDetails = await Promise.all(
         notificationsArray.map(async (notification) => {
           if (notification.type === 'FRIEND_REQUEST' || notification.type === 'friend_request') {
-            // reference_id is the sender's user ID according to your clarification
-            const senderId = notification.reference_id;
+            // reference_id IS the sender's user ID - simple!
+            const senderUserId = notification.reference_id;
             
-            console.log('Fetching sender details for user ID:', senderId);
+            console.log('Getting user details for sender ID:', senderUserId);
             
-            let senderDetails = null;
-            
-            // Check if backend already provides sender details
-            if (notification.senderDetails) {
-              senderDetails = notification.senderDetails;
-              console.log('Using provided sender details:', senderDetails);
-            } else if (senderId) {
-              // Fetch sender details using the reference_id as user ID
-              try {
-                senderDetails = await fetchUserDetails(senderId);
-                console.log('Fetched sender details:', senderDetails);
-              } catch (error) {
-                console.error('Failed to fetch sender details for user ID:', senderId, error);
-                senderDetails = {
-                  id: senderId,
-                  username: 'Unknown User',
-                  email: '',
-                  profilePic: null
-                };
-              }
-            }
+            // Fetch sender details using reference_id as user ID
+            const senderDetails = await fetchUserDetails(senderUserId);
             
             return {
               ...notification,
               senderDetails: senderDetails,
-              friendRequestId: notification.id, // Use notification ID as friend request ID
-              senderId: senderId
+              friendRequestId: notification.id, // Use notification ID for actions
             };
           }
           
@@ -135,7 +115,7 @@ const NotificationDropdown = () => {
         })
       );
       
-      console.log('Processed notifications with sender details:', notificationsWithSenderDetails);
+      console.log('Processed notifications:', notificationsWithSenderDetails);
       setNotifications(notificationsWithSenderDetails);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
@@ -261,10 +241,7 @@ const NotificationDropdown = () => {
   };
 
   const getUserAvatar = (notification) => {
-    if (notification.senderDetails?.profilePic) {
-      return notification.senderDetails.profilePic;
-    }
-    return null; // Return null to show initials instead
+    return notification.senderDetails?.profilePic || null;
   };
 
   const getUserInitial = (notification) => {
