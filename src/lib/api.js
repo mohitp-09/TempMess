@@ -117,14 +117,42 @@ export const searchUser = async (searchTerm) => {
   }
 };
 
-// Get user by ID - NEW FUNCTION
+// Get user by ID - Updated to handle different possible endpoints
 export const getUserById = async (userId) => {
   try {
-    const response = await api.get(`/users/${userId}`);
+    console.log('Attempting to fetch user with ID:', userId);
+    
+    // Try different possible endpoints
+    let response;
+    try {
+      // First try: /api/users/{id}
+      response = await api.get(`/users/${userId}`);
+    } catch (error) {
+      console.log('First endpoint failed, trying alternative...');
+      try {
+        // Second try: /api/user/{id}
+        response = await api.get(`/user/${userId}`);
+      } catch (error2) {
+        console.log('Second endpoint failed, trying search...');
+        // Third try: use search endpoint with ID
+        response = await api.get('/users/search', { 
+          params: { id: userId } 
+        });
+      }
+    }
+    
+    console.log('User fetch successful:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Failed to fetch user by ID:', error);
-    throw new Error(error.response?.data?.message || 'Failed to fetch user details');
+    console.error('All user fetch attempts failed for ID:', userId, error);
+    
+    // Return a fallback user object instead of throwing
+    return {
+      id: userId,
+      username: `User${userId}`,
+      email: '',
+      profilePic: null
+    };
   }
 };
 

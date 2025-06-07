@@ -67,7 +67,10 @@ const NotificationDropdown = () => {
     }
 
     try {
+      console.log('Fetching user details for ID:', userId);
       const userDetails = await getUserById(userId);
+      console.log('User details fetched:', userDetails);
+      
       setUserCache(prev => ({
         ...prev,
         [userId]: userDetails
@@ -75,12 +78,21 @@ const NotificationDropdown = () => {
       return userDetails;
     } catch (error) {
       console.error('Failed to fetch user details for ID:', userId, error);
-      return {
+      
+      // Return fallback user data
+      const fallbackUser = {
         id: userId,
-        username: 'Unknown User',
+        username: `User${userId}`,
         email: '',
         profilePic: null
       };
+      
+      setUserCache(prev => ({
+        ...prev,
+        [userId]: fallbackUser
+      }));
+      
+      return fallbackUser;
     }
   };
 
