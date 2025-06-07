@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { isTokenExpired } from './jwtUtils';
 
-// Configure axios with base URL
-const API_BASE_URL = 'http://localhost:8080/api';
+// Configure axios with base URL - REMOVED /api prefix
+const API_BASE_URL = 'http://localhost:8080';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -125,12 +125,12 @@ export const getUserById = async (userId) => {
     // Try different possible endpoints
     let response;
     try {
-      // First try: /api/users/{id}
+      // First try: /users/{id}
       response = await api.get(`/users/${userId}`);
     } catch (error) {
       console.log('First endpoint failed, trying alternative...');
       try {
-        // Second try: /api/user/{id}
+        // Second try: /user/{id}
         response = await api.get(`/user/${userId}`);
       } catch (error2) {
         console.log('Second endpoint failed, trying search...');
@@ -202,7 +202,7 @@ export const getAllFriends = async () => {
 // Create a separate axios instance for friend requests with proper error handling
 const createFriendsApi = () => {
   const friendsApi = axios.create({
-    baseURL: 'http://localhost:8080', // No /api prefix for friends endpoints
+    baseURL: 'http://localhost:8080', // No /api prefix
     headers: {
       'Content-Type': 'application/json',
     },
