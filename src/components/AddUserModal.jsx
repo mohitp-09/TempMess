@@ -63,6 +63,9 @@ const AddUserModal = ({ isOpen, onClose }) => {
         setSearchTerm('');
         setRequestSent(false);
         onClose();
+        
+        // Trigger a custom event to refresh notifications
+        window.dispatchEvent(new CustomEvent('friendRequestSent'));
       }, 2000);
       
     } catch (error) {
