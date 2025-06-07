@@ -244,6 +244,51 @@ const createFriendsApi = () => {
   return friendsApi;
 };
 
+// Create a separate axios instance for notifications with /api prefix
+const createNotificationsApi = () => {
+  const notificationsApi = axios.create({
+    baseURL: 'http://localhost:8080/api', // WITH /api prefix for notifications
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    withCredentials: true,
+    timeout: 10000, // 10 second timeout
+  });
+
+  // Add auth interceptor for notifications API
+  notificationsApi.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
+
+  // Add response interceptor for better error handling
+  notificationsApi.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      console.error('Notifications API Error:', error);
+      
+      // Handle different types of errors
+      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+        throw new Error('Unable to connect to server. Please ensure the backend is running on http://localhost:8080');
+      }
+      
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('Request timeout. Please try again.');
+      }
+      
+      return Promise.reject(error);
+    }
+  );
+
+  return notificationsApi;
+};
+
 export const sendFriendRequest = async (senderUsername, receiverUsername) => {
   try {
     console.log('Sending friend request:', { senderUsername, receiverUsername });
@@ -385,11 +430,12 @@ export const rejectFriendRequest = async (requestId) => {
   }
 };
 
-// Notifications - Only fetch from backend, no mock data
+// Notifications - Using separate API instance with /api prefix
 export const getUnreadNotifications = async () => {
   try {
     console.log('Fetching notifications from backend...');
-    const response = await api.get('/notifications/unread');
+    const notificationsApi = createNotificationsApi();
+    const response = await notificationsApi.get('/notifications/unread');
     console.log('Notifications response:', response.data);
     
     // Handle different response formats from backend
@@ -422,7 +468,8 @@ export const getUnreadNotifications = async () => {
 
 export const markNotificationAsRead = async (notificationId) => {
   try {
-    const response = await api.post(`/notifications/read/${notificationId}`);
+    const notificationsApi = createNotificationsApi();
+    const response = await notificationsApi.post(`/notifications/read/${notificationId}`);
     return response.data;
   } catch (error) {
     console.error('Failed to mark notification as read:', error.response?.data);
