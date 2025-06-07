@@ -1,6 +1,7 @@
 import { Plus, Search, Users, MessageCircle, Bell, UsersRound, X, AlignLeft } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { getAllFriends } from "../lib/api";
+import { useChatStore } from "../store/useChatStore";
 import AddUserModal from "./AddUserModal";
 import toast from "react-hot-toast";
 
@@ -14,6 +15,13 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
   const [isLoadingFriends, setIsLoadingFriends] = useState(true);
   const drawerRef = useRef(null);
   const buttonRef = useRef(null);
+
+  // Get chat store functions
+  const { 
+    getLastMessageForUser, 
+    getUnreadCountForUser,
+    selectUser 
+  } = useChatStore();
 
   const tabs = [
     { id: "all", label: "All", icon: <MessageCircle className="size-4" /> },
@@ -91,22 +99,17 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
     setIsExpanded(!isExpanded);
   };
 
-  const handleUserSelect = (user) => {
+  const handleUserSelect = async (user) => {
+    // Update chat store
+    await selectUser(user);
+    
+    // Update parent component
     onSelectUser(user);
+    
+    // Close sidebar on mobile
     if (window.innerWidth < 1024) {
       setIsExpanded(false);
     }
-  };
-
-  // Mock functions for last message and unread count (to be implemented later)
-  const getLastMessage = (userId) => {
-    // TODO: Implement real last message fetching
-    return null;
-  };
-
-  const getUnreadCount = (userId) => {
-    // TODO: Implement real unread count
-    return 0;
   };
 
   const formatMessageTime = (timestamp) => {
@@ -218,8 +221,8 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
             </div>
           ) : filteredFriends.length > 0 ? (
             filteredFriends.map((friend) => {
-              const lastMessage = getLastMessage(friend._id);
-              const unreadCount = getUnreadCount(friend._id);
+              const lastMessage = getLastMessageForUser(friend.username);
+              const unreadCount = getUnreadCountForUser(friend.username);
 
               return (
                 <button

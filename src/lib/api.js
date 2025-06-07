@@ -199,6 +199,48 @@ export const getAllFriends = async () => {
   }
 };
 
+// NEW: Get chat history between two users
+export const getChatHistory = async (user1, user2) => {
+  try {
+    console.log('Fetching chat history between:', user1, 'and', user2);
+    const response = await api.get('/api/messages/history', {
+      params: { user1, user2 }
+    });
+    
+    console.log('Chat history response:', response.data);
+    
+    // Handle different response formats
+    let messages = response.data;
+    if (messages && typeof messages === 'object' && messages.messages) {
+      messages = messages.messages;
+    }
+    if (messages && typeof messages === 'object' && messages.data) {
+      messages = messages.data;
+    }
+    
+    // Ensure we return an array
+    if (!Array.isArray(messages)) {
+      console.warn('Messages response is not an array:', messages);
+      return [];
+    }
+    
+    // Transform backend message data to match frontend format
+    return messages.map(message => ({
+      _id: message.id?.toString() || message._id || `msg-${Date.now()}-${Math.random()}`,
+      senderId: message.sender?.username || message.senderId || message.sender,
+      receiverId: message.receiver?.username || message.receiverId || message.receiver,
+      text: message.message || message.text || message.content,
+      createdAt: message.timestamp || message.createdAt || new Date().toISOString(),
+      // Add any other fields your message format needs
+    }));
+  } catch (error) {
+    console.error('Failed to fetch chat history:', error.response?.data || error.message);
+    
+    // Return empty array if API fails - no mock data for real chat
+    return [];
+  }
+};
+
 // Create a separate axios instance for friend requests with proper error handling
 const createFriendsApi = () => {
   const friendsApi = axios.create({
