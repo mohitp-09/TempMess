@@ -100,7 +100,7 @@ export const register = async (userData) => {
   }
 };
 
-// User search
+// User search - NOW WITH /api PREFIX
 export const searchUser = async (searchTerm) => {
   try {
     const params = {};
@@ -110,32 +110,32 @@ export const searchUser = async (searchTerm) => {
       params.username = searchTerm;
     }
     
-    const response = await api.get('/users/search', { params });
+    const response = await api.get('/api/users/search', { params });
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message || 'User search failed');
   }
 };
 
-// Get user by ID - Updated to handle different possible endpoints
+// Get user by ID - Updated to handle different possible endpoints WITH /api PREFIX
 export const getUserById = async (userId) => {
   try {
     console.log('Attempting to fetch user with ID:', userId);
     
-    // Try different possible endpoints
+    // Try different possible endpoints with /api prefix
     let response;
     try {
-      // First try: /users/{id}
-      response = await api.get(`/users/${userId}`);
+      // First try: /api/users/{id}
+      response = await api.get(`/api/users/${userId}`);
     } catch (error) {
       console.log('First endpoint failed, trying alternative...');
       try {
-        // Second try: /user/{id}
-        response = await api.get(`/user/${userId}`);
+        // Second try: /api/user/{id}
+        response = await api.get(`/api/user/${userId}`);
       } catch (error2) {
         console.log('Second endpoint failed, trying search...');
         // Third try: use search endpoint with ID
-        response = await api.get('/users/search', { 
+        response = await api.get('/api/users/search', { 
           params: { id: userId } 
         });
       }
@@ -156,7 +156,7 @@ export const getUserById = async (userId) => {
   }
 };
 
-// Get all friends for the current user - FIXED ENDPOINT
+// Get all friends for the current user - NO /api prefix (as per your instruction)
 export const getAllFriends = async () => {
   try {
     console.log('Fetching friends list from backend...');
