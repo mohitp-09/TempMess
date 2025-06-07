@@ -169,10 +169,10 @@ export const rejectFriendRequest = async (requestId) => {
   }
 };
 
-// Notifications - Updated to handle different response formats
+// Notifications - Only fetch from backend, no mock data
 export const getUnreadNotifications = async () => {
   try {
-    console.log('Fetching notifications...');
+    console.log('Fetching notifications from backend...');
     const response = await api.get('/notifications/unread');
     console.log('Notifications response:', response.data);
     
@@ -199,21 +199,8 @@ export const getUnreadNotifications = async () => {
   } catch (error) {
     console.error('Failed to fetch notifications:', error.response?.data || error.message);
     
-    // For testing purposes, return mock data if API fails
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Using mock notifications for development');
-      return [
-        {
-          id: 'mock-1',
-          type: 'FRIEND_REQUEST',
-          message: 'John Doe sent you a friend request',
-          createdAt: new Date().toISOString(),
-          relatedId: 'mock-request-1'
-        }
-      ];
-    }
-    
-    throw new Error(error.response?.data?.message || 'Failed to fetch notifications');
+    // Return empty array if API fails - no mock data
+    return [];
   }
 };
 

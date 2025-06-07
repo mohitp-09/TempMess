@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, X, UserPlus } from 'lucide-react';
+import { Bell, Check, X, UserPlus, RefreshCw } from 'lucide-react';
 import { getUnreadNotifications, markNotificationAsRead, acceptFriendRequest, rejectFriendRequest } from '../lib/api';
 import toast from 'react-hot-toast';
 
@@ -48,7 +48,19 @@ const NotificationDropdown = () => {
       fetchNotifications();
     }, 120000); // 2 minutes
     
-    return () => clearInterval(interval);
+    // Listen for friend request sent events
+    const handleFriendRequestSent = () => {
+      setTimeout(() => {
+        fetchNotifications();
+      }, 1000); // Wait 1 second for backend to process
+    };
+    
+    window.addEventListener('friendRequestSent', handleFriendRequestSent);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('friendRequestSent', handleFriendRequestSent);
+    };
   }, []);
 
   const fetchNotifications = async () => {
@@ -63,6 +75,8 @@ const NotificationDropdown = () => {
       if (isOpen) {
         toast.error('Failed to fetch notifications');
       }
+      // Set empty array on error
+      setNotifications([]);
     } finally {
       setIsLoading(false);
     }
@@ -131,6 +145,11 @@ const NotificationDropdown = () => {
     }
   };
 
+  const handleRefresh = () => {
+    fetchNotifications();
+    toast.success('Notifications refreshed');
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -151,15 +170,14 @@ const NotificationDropdown = () => {
           {/* Header */}
           <div className="p-3 border-b border-base-300 flex items-center justify-between">
             <h3 className="font-semibold">Notifications</h3>
-            {notifications.length > 0 && (
-              <button
-                onClick={fetchNotifications}
-                className="text-xs text-primary hover:underline"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Refreshing...' : 'Refresh'}
-              </button>
-            )}
+            <button
+              onClick={handleRefresh}
+              className="flex items-center gap-1 text-xs text-primary hover:underline"
+              disabled={isLoading}
+            >
+              <RefreshCw className={`size-3 ${isLoading ? 'animate-spin' : ''}`} />
+              {isLoading ? 'Refreshing...' : 'Refresh'}
+            </button>
           </div>
 
           {/* Content */}
