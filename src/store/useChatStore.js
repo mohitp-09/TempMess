@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import webSocketService from "../lib/websocket";
-import { getChatHistory } from "../lib/api";
 import { getCurrentUserFromToken } from "../lib/jwtUtils";
 
 const useChatStore = create((set, get) => ({
@@ -47,7 +46,7 @@ const useChatStore = create((set, get) => ({
     set({ isConnected: false });
   },
 
-  // Select a user to chat with
+  // Select a user to chat with (no chat history loading)
   selectUser: async (user) => {
     const { currentUser } = get();
     if (!currentUser) {
@@ -55,23 +54,15 @@ const useChatStore = create((set, get) => ({
       return;
     }
 
-    set({ selectedUser: user, isLoading: true });
-
-    try {
-      // Load chat history for this user
-      const history = await getChatHistory(currentUser.username, user.username);
-      
-      set((state) => ({
-        messages: {
-          ...state.messages,
-          [user.username]: history
-        },
-        isLoading: false
-      }));
-    } catch (error) {
-      console.error('Failed to load chat history:', error);
-      set({ isLoading: false });
-    }
+    set({ selectedUser: user });
+    
+    // Initialize empty message array for this user if it doesn't exist
+    set((state) => ({
+      messages: {
+        ...state.messages,
+        [user.username]: state.messages[user.username] || []
+      }
+    }));
   },
 
   // Send a message
@@ -127,7 +118,7 @@ const useChatStore = create((set, get) => ({
         messages: {
           ...state.messages,
           [selectedUser.username]: (state.messages[selectedUser.username] || []).filter(
-            msg => msg._id !== `temp-${Date.now()}`
+            msg => !msg.isTemp || msg._id !== `temp-${Date.now()}`
           )
         }
       }));
