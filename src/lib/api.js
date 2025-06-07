@@ -128,35 +128,12 @@ export const getUserById = async (userId) => {
   }
 };
 
-// Create a separate axios instance for friend requests to handle CORS
-const friendsApi = axios.create({
-  baseURL: 'http://localhost:8080',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: true,
-});
-
-// Add auth interceptor for friends API
-friendsApi.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Friend requests - Using separate instance to handle CORS properly
+// Friend requests - Using the main api instance with proper base URL
 export const sendFriendRequest = async (senderUsername, receiverUsername) => {
   try {
     console.log('Sending friend request:', { senderUsername, receiverUsername });
     
-    const response = await friendsApi.post('/friends/request', null, {
+    const response = await api.post('/friends/request', null, {
       params: { 
         senderUsername: senderUsername, 
         receiverUsername: receiverUsername 
@@ -168,11 +145,6 @@ export const sendFriendRequest = async (senderUsername, receiverUsername) => {
   } catch (error) {
     console.error('Friend request error:', error.response?.data || error.message);
     console.error('Full error:', error);
-    
-    // Handle CORS errors specifically
-    if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-      throw new Error('Unable to connect to server. Please check if the backend is running and CORS is properly configured.');
-    }
     
     // Handle specific error cases
     const errorMessage = error.response?.data || error.message;
@@ -208,7 +180,7 @@ export const acceptFriendRequest = async (requestId) => {
   try {
     console.log('Accepting friend request with ID:', requestId);
     
-    const response = await friendsApi.post('/friends/accept', null, {
+    const response = await api.post('/friends/accept', null, {
       params: { requestId }
     });
     
@@ -217,11 +189,6 @@ export const acceptFriendRequest = async (requestId) => {
   } catch (error) {
     console.error('Accept friend request error:', error.response?.data || error.message);
     console.error('Full error:', error);
-    
-    // Handle CORS errors specifically
-    if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-      throw new Error('Unable to connect to server. Please check if the backend is running and CORS is properly configured.');
-    }
     
     // Handle specific error messages
     const errorMessage = error.response?.data?.message || error.response?.data || error.message;
@@ -233,7 +200,7 @@ export const rejectFriendRequest = async (requestId) => {
   try {
     console.log('Rejecting friend request with ID:', requestId);
     
-    const response = await friendsApi.post('/friends/reject', null, {
+    const response = await api.post('/friends/reject', null, {
       params: { requestId }
     });
     
@@ -242,11 +209,6 @@ export const rejectFriendRequest = async (requestId) => {
   } catch (error) {
     console.error('Reject friend request error:', error.response?.data || error.message);
     console.error('Full error:', error);
-    
-    // Handle CORS errors specifically
-    if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-      throw new Error('Unable to connect to server. Please check if the backend is running and CORS is properly configured.');
-    }
     
     // Handle specific error messages
     const errorMessage = error.response?.data?.message || error.response?.data || error.message;
