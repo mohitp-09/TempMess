@@ -49,9 +49,19 @@ api.interceptors.response.use(
     console.error('API Error:', error.response?.data || error.message);
     
     if (error.response?.status === 401) {
-      console.warn('Unauthorized request, clearing token and redirecting to login');
+      console.warn('Unauthorized request, clearing all auth data');
+      
+      // Clear all possible auth-related localStorage items
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('authUser');
+      
+      // Clear any other auth-related items
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('auth') || key.includes('token') || key.includes('user')) {
+          localStorage.removeItem(key);
+        }
+      });
       
       // Only redirect if not already on login page
       if (window.location.pathname !== '/login') {

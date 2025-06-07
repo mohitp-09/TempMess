@@ -7,9 +7,27 @@ const Navbar = () => {
   const { isAuthenticated, logout } = useAuthStore();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    console.log('Logout button clicked');
+    
+    try {
+      // Call the logout function from store
+      logout();
+      
+      // Force a small delay to ensure state updates
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Navigate to login page
+      navigate('/login', { replace: true });
+      
+      console.log('Redirected to login page');
+    } catch (error) {
+      console.error('Error during logout:', error);
+      
+      // Force logout even if there's an error
+      localStorage.clear();
+      navigate('/login', { replace: true });
+    }
   };
 
   return (
@@ -48,7 +66,8 @@ const Navbar = () => {
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="btn btn-sm gap-2 transition-colors"
+                  className="btn btn-sm gap-2 transition-colors hover:btn-error"
+                  type="button"
                 >
                   <LogOut className="w-4 h-4" />
                   <span className="hidden sm:inline">Logout</span>

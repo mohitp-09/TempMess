@@ -28,7 +28,7 @@ const useAuthStore = create((set, get) => ({
   login: (userData) => {
     // If userData contains a token, decode it to get user info
     let userInfo = userData;
-    if (userData.token) {
+    if (userData && userData.token) {
       const decodedUser = getCurrentUserFromToken();
       userInfo = { ...userData, ...decodedUser };
     }
@@ -40,12 +40,29 @@ const useAuthStore = create((set, get) => ({
   },
   
   logout: () => {
+    console.log('Logging out user...');
+    
+    // Clear all auth-related data from localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('authUser');
+    
+    // Clear any other auth-related items that might exist
+    Object.keys(localStorage).forEach(key => {
+      if (key.includes('auth') || key.includes('token') || key.includes('user')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    console.log('LocalStorage cleared, updating state...');
+    
+    // Update state
     set({ 
       isAuthenticated: false,
       user: null 
     });
+    
+    console.log('Logout complete');
   },
   
   updateUser: (userData) => {
