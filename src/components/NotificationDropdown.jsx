@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, X, UserPlus, RefreshCw, AlertCircle } from 'lucide-react';
+import { Bell, Check, X, UserPlus, RefreshCw } from 'lucide-react';
 import { getUnreadNotifications, markNotificationAsRead, acceptFriendRequest, rejectFriendRequest, getUserById } from '../lib/api';
 import toast from 'react-hot-toast';
 
@@ -7,8 +7,8 @@ const NotificationDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [userCache, setUserCache] = useState({}); // Cache for user details
-  const [processingRequests, setProcessingRequests] = useState(new Set()); // Track processing requests
+  const [userCache, setUserCache] = useState({});
+  const [processingRequests, setProcessingRequests] = useState(new Set());
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -28,33 +28,29 @@ const NotificationDropdown = () => {
     }
   }, [isOpen]);
 
-  // Auto-refresh notifications every 30 seconds when dropdown is open
   useEffect(() => {
     let interval;
     if (isOpen) {
       interval = setInterval(() => {
         fetchNotifications();
-      }, 30000); // 30 seconds
+      }, 30000);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
   }, [isOpen]);
 
-  // Fetch notifications on component mount to get initial count
   useEffect(() => {
     fetchNotifications();
     
-    // Set up periodic refresh every 2 minutes for notification count
     const interval = setInterval(() => {
       fetchNotifications();
-    }, 120000); // 2 minutes
+    }, 120000);
     
-    // Listen for friend request sent events
     const handleFriendRequestSent = () => {
       setTimeout(() => {
         fetchNotifications();
-      }, 1000); // Wait 1 second for backend to process
+      }, 1000);
     };
     
     window.addEventListener('friendRequestSent', handleFriendRequestSent);
@@ -66,30 +62,23 @@ const NotificationDropdown = () => {
   }, []);
 
   const fetchUserDetails = async (userId) => {
-    // Check cache first
     if (userCache[userId]) {
       return userCache[userId];
     }
 
     try {
-      console.log(`Fetching user details for ID: ${userId}`);
       const userDetails = await getUserById(userId);
-      console.log(`User details fetched:`, userDetails);
-      
-      // Cache the user details
       setUserCache(prev => ({
         ...prev,
         [userId]: userDetails
       }));
       return userDetails;
     } catch (error) {
-      console.error(`Failed to fetch user details for ID ${userId}:`, error);
-      // Return a default user object
       return {
         id: userId,
         username: 'Unknown User',
         email: '',
-        profilePic: '/avatar.png' // Default avatar
+        profilePic: '/avatar.png'
       };
     }
   };
@@ -98,51 +87,28 @@ const NotificationDropdown = () => {
     setIsLoading(true);
     try {
       const data = await getUnreadNotifications();
-      console.log('Raw notifications from API:', data);
-      
       const notificationsArray = Array.isArray(data) ? data : [];
-      console.log('Notifications array:', notificationsArray);
       
-      // Process notifications to get sender details
       const notificationsWithUserDetails = await Promise.all(
         notificationsArray.map(async (notification) => {
-          console.log('Processing notification:', notification);
-          
-          // For friend requests, the reference_id should be the friend_requests.id
-          // We need to get the sender_id from the friend_requests table
           if (notification.type === 'FRIEND_REQUEST' || notification.type === 'friend_request') {
-            const friendRequestId = notification.reference_id; // This is the friend_requests.id
-            
-            console.log(`Friend request notification - ID: ${notification.id}, reference_id (friend_request_id): ${friendRequestId}`);
-            
-            // Based on your database structure:
-            // - notification.reference_id = friend_requests.id
-            // - We need to get sender details using the sender_id from friend_requests
-            // - But since your backend should provide sender details, let's use what we have
-            
-            // For now, let's assume the backend provides sender info in the notification
-            // If not, we'll need to make an additional API call to get friend_request details
+            const friendRequestId = notification.reference_id;
             
             let senderDetails = null;
             let senderId = null;
             
-            // Try to get sender ID from notification data
             if (notification.sender_id) {
               senderId = notification.sender_id;
             } else if (notification.senderDetails) {
               senderDetails = notification.senderDetails;
             } else {
-              // If no sender info in notification, we might need to fetch friend_request details
-              console.log('No sender info in notification, using reference_id as fallback');
-              senderId = notification.reference_id; // Fallback - might not be correct
+              senderId = notification.reference_id;
             }
             
             if (senderId && !senderDetails) {
               try {
-                console.log(`Fetching sender details for sender ID: ${senderId}`);
                 senderDetails = await fetchUserDetails(senderId);
               } catch (error) {
-                console.error('Failed to fetch sender details:', error);
                 senderDetails = {
                   id: senderId,
                   username: 'Unknown User',
@@ -152,32 +118,23 @@ const NotificationDropdown = () => {
               }
             }
             
-            const processedNotification = {
+            return {
               ...notification,
               senderDetails: senderDetails,
-              // The friend request ID for accept/reject actions
-              friendRequestId: friendRequestId, // This should be the friend_requests.id
-              // Store both for debugging
+              friendRequestId: friendRequestId,
               originalReferenceId: notification.reference_id
             };
-            
-            console.log('Processed notification:', processedNotification);
-            return processedNotification;
           }
           
           return notification;
         })
       );
       
-      console.log('Final notifications with user details:', notificationsWithUserDetails);
       setNotifications(notificationsWithUserDetails);
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
-      // Don't show error toast for background fetches
       if (isOpen) {
         toast.error('Failed to fetch notifications');
       }
-      // Set empty array on error
       setNotifications([]);
     } finally {
       setIsLoading(false);
@@ -190,42 +147,28 @@ const NotificationDropdown = () => {
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
       toast.success('Notification marked as read');
     } catch (error) {
-      console.error('Failed to mark notification as read:', error);
       toast.error('Failed to mark notification as read');
     }
   };
 
   const handleAcceptFriendRequest = async (requestId, notificationId) => {
-    console.log(`Attempting to accept friend request - requestId: ${requestId}, notificationId: ${notificationId}`);
-    
-    // Validate requestId
     if (!requestId || requestId === 'undefined' || requestId === undefined) {
-      console.error('Invalid request ID:', requestId);
       toast.error('Invalid request ID. Please refresh and try again.');
       return;
     }
 
-    // Prevent multiple clicks
     if (processingRequests.has(requestId)) {
-      console.log('Request already being processed:', requestId);
       return;
     }
 
     setProcessingRequests(prev => new Set(prev).add(requestId));
 
     try {
-      console.log(`Accepting friend request ID: ${requestId}, notification ID: ${notificationId}`);
-      
       await acceptFriendRequest(requestId);
       await handleMarkAsRead(notificationId);
       toast.success('Friend request accepted!');
-      
-      // Refresh notifications to get updated list
       fetchNotifications();
     } catch (error) {
-      console.error('Failed to accept friend request:', error);
-      
-      // Show user-friendly error message
       if (error.message.includes('connect to server')) {
         toast.error('Unable to connect to server. Please check your connection and try again.');
       } else if (error.message.includes('timeout')) {
@@ -245,36 +188,23 @@ const NotificationDropdown = () => {
   };
 
   const handleRejectFriendRequest = async (requestId, notificationId) => {
-    console.log(`Attempting to reject friend request - requestId: ${requestId}, notificationId: ${notificationId}`);
-    
-    // Validate requestId
     if (!requestId || requestId === 'undefined' || requestId === undefined) {
-      console.error('Invalid request ID:', requestId);
       toast.error('Invalid request ID. Please refresh and try again.');
       return;
     }
 
-    // Prevent multiple clicks
     if (processingRequests.has(requestId)) {
-      console.log('Request already being processed:', requestId);
       return;
     }
 
     setProcessingRequests(prev => new Set(prev).add(requestId));
 
     try {
-      console.log(`Rejecting friend request ID: ${requestId}, notification ID: ${notificationId}`);
-      
       await rejectFriendRequest(requestId);
       await handleMarkAsRead(notificationId);
       toast.success('Friend request rejected');
-      
-      // Refresh notifications to get updated list
       fetchNotifications();
     } catch (error) {
-      console.error('Failed to reject friend request:', error);
-      
-      // Show user-friendly error message
       if (error.message.includes('connect to server')) {
         toast.error('Unable to connect to server. Please check your connection and try again.');
       } else if (error.message.includes('timeout')) {
@@ -302,19 +232,18 @@ const NotificationDropdown = () => {
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-      if (days > 0) return `${days}d ago`;
-      if (hours > 0) return `${hours}h ago`;
-      if (minutes > 0) return `${minutes}m ago`;
-      return 'Just now';
+      if (days > 0) return `${days}d`;
+      if (hours > 0) return `${hours}h`;
+      if (minutes > 0) return `${minutes}m`;
+      return 'now';
     } catch (error) {
-      return 'Recently';
+      return 'now';
     }
   };
 
   const handleToggleDropdown = () => {
     setIsOpen(!isOpen);
     if (!isOpen) {
-      // Fetch fresh notifications when opening
       fetchNotifications();
     }
   };
@@ -335,7 +264,7 @@ const NotificationDropdown = () => {
     if (notification.senderDetails?.profilePic) {
       return notification.senderDetails.profilePic;
     }
-    return `/avatar.png`; // Use default avatar
+    return `/avatar.png`;
   };
 
   const getUserInitial = (notification) => {
@@ -354,131 +283,127 @@ const NotificationDropdown = () => {
       >
         <Bell className="size-5" />
         {notifications.length > 0 && (
-          <span className="absolute -top-1 -right-1 size-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 size-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
             {notifications.length > 9 ? '9+' : notifications.length}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-base-100 border border-base-300 rounded-lg shadow-lg z-50 max-h-96 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-80 bg-base-100 border border-base-300 rounded-xl shadow-xl z-50 max-h-96 overflow-hidden">
           {/* Header */}
-          <div className="p-3 border-b border-base-300 flex items-center justify-between">
-            <h3 className="font-semibold">Notifications</h3>
+          <div className="px-4 py-3 border-b border-base-300 flex items-center justify-between bg-base-50">
+            <h3 className="font-semibold text-base-content">Notifications</h3>
             <button
               onClick={handleRefresh}
-              className="flex items-center gap-1 text-xs text-primary hover:underline"
+              className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
               disabled={isLoading}
             >
-              <RefreshCw className={`size-3 ${isLoading ? 'animate-spin' : ''}`} />
-              {isLoading ? 'Refreshing...' : 'Refresh'}
+              <RefreshCw className={`size-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
             </button>
           </div>
 
           {/* Content */}
           <div className="max-h-80 overflow-y-auto">
             {isLoading && notifications.length === 0 ? (
-              <div className="p-4 text-center text-base-content/60">
-                <div className="animate-spin size-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
-                Loading notifications...
+              <div className="p-6 text-center text-base-content/60">
+                <div className="animate-spin size-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
+                <p className="text-sm">Loading notifications...</p>
               </div>
             ) : notifications.length === 0 ? (
-              <div className="p-4 text-center text-base-content/60">
-                <Bell className="size-12 mx-auto mb-2 opacity-50" />
-                <p>No new notifications</p>
-                <p className="text-xs mt-1">Friend requests will appear here</p>
+              <div className="p-6 text-center text-base-content/60">
+                <Bell className="size-12 mx-auto mb-3 opacity-40" />
+                <p className="text-sm font-medium">No new notifications</p>
+                <p className="text-xs mt-1 opacity-75">Friend requests will appear here</p>
               </div>
             ) : (
-              <div className="divide-y divide-base-300">
+              <div>
                 {notifications.map((notification) => {
                   const requestId = notification.friendRequestId || notification.reference_id;
                   const isProcessing = processingRequests.has(requestId);
                   
-                  console.log(`Rendering notification ${notification.id} with requestId: ${requestId}`);
-                  
                   return (
-                    <div key={notification.id} className="p-3 hover:bg-base-200/50 transition-colors">
+                    <div key={notification.id} className="px-4 py-3 hover:bg-base-50 transition-colors border-b border-base-200 last:border-b-0">
                       <div className="flex items-start gap-3">
                         {/* User Avatar */}
-                        <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        <div className="size-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden ring-2 ring-base-200">
                           {notification.senderDetails?.profilePic ? (
                             <img 
                               src={getUserAvatar(notification)} 
                               alt={notification.senderDetails?.username || 'User'} 
                               className="size-10 rounded-full object-cover"
                               onError={(e) => {
-                                // Fallback to initial if image fails to load
                                 e.target.style.display = 'none';
                                 e.target.nextSibling.style.display = 'flex';
                               }}
                             />
                           ) : null}
                           <div 
-                            className={`size-10 rounded-full bg-primary/10 flex items-center justify-center ${
+                            className={`size-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center ${
                               notification.senderDetails?.profilePic ? 'hidden' : 'flex'
                             }`}
                           >
-                            <span className="text-primary font-medium text-sm">
+                            <span className="text-primary font-semibold text-sm">
                               {getUserInitial(notification)}
                             </span>
                           </div>
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-base-content">
-                            {getNotificationMessage(notification)}
-                          </p>
-                          {notification.senderDetails?.email && (
-                            <p className="text-xs text-base-content/50 mt-0.5">
-                              {notification.senderDetails.email}
-                            </p>
-                          )}
-                          <p className="text-xs text-base-content/60 mt-1">
-                            {formatTimeAgo(notification.createdAt || notification.timestamp)}
-                          </p>
-                          
-                          {/* Debug info - remove in production */}
-                          {process.env.NODE_ENV === 'development' && (
-                            <p className="text-xs text-red-500 mt-1">
-                              Debug: requestId={requestId}, notificationId={notification.id}
-                            </p>
-                          )}
-                          
-                          {/* Friend request actions */}
-                          {(notification.type === 'FRIEND_REQUEST' || notification.type === 'friend_request') && (
-                            <div className="flex gap-2 mt-2">
-                              <button
-                                onClick={() => handleAcceptFriendRequest(requestId, notification.id)}
-                                disabled={isProcessing || !requestId}
-                                className="flex items-center gap-1 px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {isProcessing ? (
-                                  <div className="size-3 border border-white border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                  <Check className="size-3" />
-                                )}
-                                Accept
-                              </button>
-                              <button
-                                onClick={() => handleRejectFriendRequest(requestId, notification.id)}
-                                disabled={isProcessing || !requestId}
-                                className="flex items-center gap-1 px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {isProcessing ? (
-                                  <div className="size-3 border border-white border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                  <X className="size-3" />
-                                )}
-                                Reject
-                              </button>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-base-content leading-tight">
+                                <span className="font-semibold text-primary">
+                                  {notification.senderDetails?.username || 'Someone'}
+                                </span>
+                                <span className="text-base-content/80 ml-1">
+                                  sent you a friend request
+                                </span>
+                              </p>
+                              <p className="text-xs text-base-content/50 mt-0.5 flex items-center gap-1">
+                                <span>{formatTimeAgo(notification.createdAt || notification.timestamp)}</span>
+                                <span className="size-1 bg-base-content/30 rounded-full"></span>
+                                <span>Friend Request</span>
+                              </p>
                             </div>
-                          )}
+                            
+                            {/* Action Buttons - Right Side */}
+                            {(notification.type === 'FRIEND_REQUEST' || notification.type === 'friend_request') && (
+                              <div className="flex items-center gap-1 ml-2">
+                                <button
+                                  onClick={() => handleAcceptFriendRequest(requestId, notification.id)}
+                                  disabled={isProcessing || !requestId}
+                                  className="size-8 flex items-center justify-center bg-green-500 hover:bg-green-600 text-white rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                                  title="Accept friend request"
+                                >
+                                  {isProcessing ? (
+                                    <div className="size-3 border border-white border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <Check className="size-4" />
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() => handleRejectFriendRequest(requestId, notification.id)}
+                                  disabled={isProcessing || !requestId}
+                                  className="size-8 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                                  title="Reject friend request"
+                                >
+                                  {isProcessing ? (
+                                    <div className="size-3 border border-white border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <X className="size-4" />
+                                  )}
+                                </button>
+                              </div>
+                            )}
+                          </div>
                           
                           {/* General notification mark as read */}
                           {notification.type !== 'FRIEND_REQUEST' && notification.type !== 'friend_request' && (
                             <button
                               onClick={() => handleMarkAsRead(notification.id)}
-                              className="text-xs text-primary hover:underline mt-1"
+                              className="text-xs text-primary hover:text-primary/80 mt-2 transition-colors"
                             >
                               Mark as read
                             </button>
