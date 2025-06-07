@@ -154,8 +154,8 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
     <>
       <aside
         className={`h-full border-r border-base-300/50 flex flex-col transition-all duration-300 relative bg-gradient-to-b from-base-100 to-base-50 ${
-          isExpanded ? 'w-72' : 'w-[68px]'
-        } lg:w-72`}
+          isExpanded ? 'w-80' : 'w-[68px]'
+        } lg:w-80`}
       >
         <div className="border-b border-base-300/50 w-full p-4 flex flex-col gap-4 bg-base-100/80 backdrop-blur-sm">
           <div className="flex items-center justify-between">
@@ -196,20 +196,20 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
             </div>
           </div>
 
-          {/* Fixed tabs container - removed overflow-x-auto and made it wider */}
+          {/* Fixed tabs container with proper width and no overflow */}
           <div className={`flex py-1 gap-2 ${!isExpanded && 'hidden'} lg:flex`}>
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 px-4 py-2 rounded-xl flex items-center justify-center gap-2 whitespace-nowrap text-sm transition-all duration-200 ${
+                className={`flex-1 min-w-0 px-3 py-2 rounded-xl flex items-center justify-center gap-2 text-sm transition-all duration-200 ${
                   activeTab === tab.id
                     ? "bg-primary/10 text-primary font-medium shadow-sm"
                     : "hover:bg-base-200/80 text-base-content/70 hover:text-base-content"
                 }`}
               >
-                <span className="block sm:hidden lg:block">{tab.icon}</span>
-                <span className="hidden sm:block lg:block">{tab.label}</span>
+                <span className="flex-shrink-0">{tab.icon}</span>
+                <span className="truncate text-xs sm:text-sm">{tab.label}</span>
               </button>
             ))}
           </div>
@@ -241,7 +241,7 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
                       : "hover:bg-base-200/80"
                   }`}
                 >
-                  <div className="relative mx-auto lg:mx-0">
+                  <div className="relative mx-auto lg:mx-0 flex-shrink-0">
                     <div className="size-12 rounded-full ring-2 ring-base-300/50 shadow-sm overflow-hidden">
                       <img
                         src={friend.profilePic}
@@ -265,17 +265,17 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
                         {friend.fullName}
                       </span>
                       {lastMessage && (
-                        <span className="text-xs text-base-content/40 font-medium">
+                        <span className="text-xs text-base-content/40 font-medium flex-shrink-0 ml-2">
                           {formatMessageTime(lastMessage.createdAt)}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-base-content/60 truncate max-w-[180px] leading-relaxed">
+                      <span className="text-sm text-base-content/60 truncate leading-relaxed pr-2">
                         {lastMessage ? lastMessage.text : 'Start a conversation'}
                       </span>
                       {unreadCount > 0 && (
-                        <span className="flex items-center justify-center min-w-5 h-5 text-xs font-bold bg-primary text-primary-content rounded-full px-1.5 shadow-sm">
+                        <span className="flex items-center justify-center min-w-5 h-5 text-xs font-bold bg-primary text-primary-content rounded-full px-1.5 shadow-sm flex-shrink-0">
                           {unreadCount}
                         </span>
                       )}
