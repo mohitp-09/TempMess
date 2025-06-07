@@ -196,20 +196,20 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
             </div>
           </div>
 
-          {/* FIXED: Completely removed overflow and made tabs fit container width */}
-          <div className={`grid grid-cols-3 gap-2 ${!isExpanded && 'hidden'} lg:grid`}>
+          {/* Fixed tabs container - removed overflow-x-auto and made it wider */}
+          <div className={`flex py-1 gap-2 ${!isExpanded && 'hidden'} lg:flex`}>
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-3 py-2 rounded-xl flex items-center justify-center gap-2 text-sm transition-all duration-200 min-w-0 ${
+                className={`flex-1 px-4 py-2 rounded-xl flex items-center justify-center gap-2 whitespace-nowrap text-sm transition-all duration-200 ${
                   activeTab === tab.id
                     ? "bg-primary/10 text-primary font-medium shadow-sm"
                     : "hover:bg-base-200/80 text-base-content/70 hover:text-base-content"
                 }`}
               >
-                <span className="flex-shrink-0">{tab.icon}</span>
-                <span className="truncate text-xs sm:text-sm">{tab.label}</span>
+                <span className="block sm:hidden lg:block">{tab.icon}</span>
+                <span className="hidden sm:block lg:block">{tab.label}</span>
               </button>
             ))}
           </div>
