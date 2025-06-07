@@ -71,7 +71,10 @@ const NotificationDropdown = () => {
     }
 
     try {
+      console.log(`Fetching user details for ID: ${userId}`);
       const userDetails = await getUserById(userId);
+      console.log(`User details fetched:`, userDetails);
+      
       // Cache the user details
       setUserCache(prev => ({
         ...prev,
@@ -98,32 +101,46 @@ const NotificationDropdown = () => {
       
       const notificationsArray = Array.isArray(data) ? data : [];
       
-      // Fetch user details for each notification that has a senderId
+      // Process notifications to get sender details
       const notificationsWithUserDetails = await Promise.all(
         notificationsArray.map(async (notification) => {
-          if (notification.senderId || notification.senderUserId) {
-            const userId = notification.senderId || notification.senderUserId;
-            try {
-              const userDetails = await fetchUserDetails(userId);
-              return {
-                ...notification,
-                senderDetails: userDetails
-              };
-            } catch (error) {
-              console.error('Failed to fetch sender details:', error);
-              return {
-                ...notification,
-                senderDetails: {
-                  username: 'Unknown User',
-                  profilePic: '/avatar.png'
-                }
-              };
+          console.log('Processing notification:', notification);
+          
+          // For friend requests, use reference_id to get sender details
+          if (notification.type === 'FRIEND_REQUEST' || notification.type === 'friend_request') {
+            const senderId = notification.reference_id; // reference_id points to sender_id in friend_requests
+            
+            if (senderId) {
+              try {
+                console.log(`Fetching sender details for notification ${notification.id}, sender ID: ${senderId}`);
+                const senderDetails = await fetchUserDetails(senderId);
+                
+                return {
+                  ...notification,
+                  senderDetails: senderDetails,
+                  // Also store the friend request ID for accept/reject actions
+                  friendRequestId: notification.reference_id // This might be the friend_request.id, adjust if needed
+                };
+              } catch (error) {
+                console.error('Failed to fetch sender details:', error);
+                return {
+                  ...notification,
+                  senderDetails: {
+                    id: senderId,
+                    username: 'Unknown User',
+                    email: '',
+                    profilePic: '/avatar.png'
+                  }
+                };
+              }
             }
           }
+          
           return notification;
         })
       );
       
+      console.log('Notifications with user details:', notificationsWithUserDetails);
       setNotifications(notificationsWithUserDetails);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
@@ -151,6 +168,7 @@ const NotificationDropdown = () => {
 
   const handleAcceptFriendRequest = async (requestId, notificationId) => {
     try {
+      console.log(`Accepting friend request ID: ${requestId}, notification ID: ${notificationId}`);
       await acceptFriendRequest(requestId);
       await handleMarkAsRead(notificationId);
       toast.success('Friend request accepted!');
@@ -164,6 +182,7 @@ const NotificationDropdown = () => {
 
   const handleRejectFriendRequest = async (requestId, notificationId) => {
     try {
+      console.log(`Rejecting friend request ID: ${requestId}, notification ID: ${notificationId}`);
       await rejectFriendRequest(requestId);
       await handleMarkAsRead(notificationId);
       toast.success('Friend request rejected');
@@ -217,9 +236,7 @@ const NotificationDropdown = () => {
     if (notification.senderDetails?.profilePic) {
       return notification.senderDetails.profilePic;
     }
-    // Generate a default avatar based on username
-    const username = notification.senderDetails?.username || 'U';
-    return `/avatar.png`; // Use default avatar for now
+    return `/avatar.png`; // Use default avatar
   };
 
   const getUserInitial = (notification) => {
@@ -320,7 +337,7 @@ const NotificationDropdown = () => {
                           <div className="flex gap-2 mt-2">
                             <button
                               onClick={() => handleAcceptFriendRequest(
-                                notification.relatedId || notification.requestId, 
+                                notification.relatedId || notification.friendRequestId || notification.reference_id, 
                                 notification.id
                               )}
                               className="flex items-center gap-1 px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors"
@@ -330,7 +347,7 @@ const NotificationDropdown = () => {
                             </button>
                             <button
                               onClick={() => handleRejectFriendRequest(
-                                notification.relatedId || notification.requestId, 
+                                notification.relatedId || notification.friendRequestId || notification.reference_id, 
                                 notification.id
                               )}
                               className="flex items-center gap-1 px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors"
