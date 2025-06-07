@@ -1,4 +1,4 @@
-import { Plus, Search, Users, MessageCircle, Bell, UsersRound, X, AlignLeft } from "lucide-react";
+import { Plus, Search, Users, MessageCircle, Bell, UsersRound, X, AlignLeft, Sparkles } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { getAllFriends } from "../lib/api";
 import { useChatStore } from "../store/useChatStore";
@@ -34,6 +34,7 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
       id: "newGroup", 
       label: "New Group", 
       icon: <UsersRound className="size-5" />,
+      color: "text-blue-600",
       onClick: () => {
         console.log("New Group clicked");
         setShowDrawer(false);
@@ -43,6 +44,7 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
       id: "addUser", 
       label: "Add User", 
       icon: <Users className="size-5" />,
+      color: "text-green-600",
       onClick: () => {
         setShowAddUserModal(true);
         setShowDrawer(false);
@@ -151,22 +153,22 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
   return (
     <>
       <aside
-        className={`h-full border-r border-base-300 flex flex-col transition-all duration-300 relative ${
+        className={`h-full border-r border-base-300/50 flex flex-col transition-all duration-300 relative bg-gradient-to-b from-base-100 to-base-50 ${
           isExpanded ? 'w-72' : 'w-[68px]'
         } lg:w-72`}
       >
-        <div className="border-b border-base-300 w-full p-4 flex flex-col gap-3">
+        <div className="border-b border-base-300/50 w-full p-4 flex flex-col gap-4 bg-base-100/80 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <button
               onClick={toggleSidebar}
-              className="size-9 flex items-center justify-center rounded-full hover:bg-base-200 transition-colors lg:hidden"
+              className="size-10 flex items-center justify-center rounded-xl hover:bg-base-200/80 transition-all duration-200 lg:hidden group"
               aria-label="Toggle sidebar"
             >
-              <AlignLeft className="size-5" />
+              <AlignLeft className="size-5 text-base-content/70 group-hover:text-base-content transition-colors" />
             </button>
 
             <div className={`relative flex-1 ${!isExpanded && 'hidden'} lg:block`}>
-              <div className="relative flex items-center">
+              <div className="relative flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-base-content/40" />
                   <input
@@ -174,34 +176,35 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
                     placeholder="Search friends"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 bg-base-200 rounded-full text-sm focus:outline-none"
+                    className="w-full pl-10 pr-4 py-2.5 bg-base-200/80 backdrop-blur-sm rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 border border-base-300/50 transition-all duration-200"
                   />
                 </div>
                 <button
                   ref={buttonRef}
                   onClick={toggleDrawer}
-                  className="ml-2 size-9 flex items-center justify-center rounded-full bg-base-200 hover:bg-base-300 transition-colors"
+                  className="size-10 flex items-center justify-center rounded-xl bg-primary/10 hover:bg-primary/20 transition-all duration-200 group relative"
                   aria-label={showDrawer ? "Close menu" : "Open menu"}
                 >
                   {showDrawer ? (
-                    <X className="size-5 transition-transform duration-200" />
+                    <X className="size-5 text-primary transition-transform duration-200" />
                   ) : (
-                    <Plus className="size-5 transition-transform duration-200" />
+                    <Plus className="size-5 text-primary transition-transform duration-200 group-hover:rotate-90" />
                   )}
+                  <Sparkles className="absolute -top-1 -right-1 size-3 text-primary/60 animate-pulse" />
                 </button>
               </div>
             </div>
           </div>
 
-          <div className={`flex overflow-x-auto py-1 gap-1 no-scrollbar ${!isExpanded && 'hidden'} lg:flex`}>
+          <div className={`flex overflow-x-auto py-1 gap-2 no-scrollbar ${!isExpanded && 'hidden'} lg:flex`}>
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-3 py-1.5 rounded-full flex items-center gap-1.5 whitespace-nowrap text-sm transition-colors ${
+                className={`px-4 py-2 rounded-xl flex items-center gap-2 whitespace-nowrap text-sm transition-all duration-200 ${
                   activeTab === tab.id
-                    ? "bg-base-300 font-medium"
-                    : "hover:bg-base-200"
+                    ? "bg-primary/10 text-primary font-medium shadow-sm"
+                    : "hover:bg-base-200/80 text-base-content/70 hover:text-base-content"
                 }`}
               >
                 <span className="hidden sm:block lg:hidden">{tab.icon}</span>
@@ -211,56 +214,67 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
           </div>
         </div>
 
-        <div className="overflow-y-auto w-full py-3">
+        <div className="overflow-y-auto w-full py-2 flex-1">
           {isLoadingFriends ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin size-6 border-2 border-primary border-t-transparent rounded-full"></div>
-              <span className={`ml-2 text-sm text-base-content/60 ${!isExpanded && 'hidden'} lg:block`}>
-                Loading friends...
-              </span>
+            <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center gap-3">
+                <div className="animate-spin size-8 border-2 border-primary border-t-transparent rounded-full"></div>
+                <span className={`text-sm text-base-content/60 font-medium ${!isExpanded && 'hidden'} lg:block`}>
+                  Loading friends...
+                </span>
+              </div>
             </div>
           ) : filteredFriends.length > 0 ? (
             filteredFriends.map((friend) => {
               const lastMessage = getLastMessageForUser(friend.username);
               const unreadCount = getUnreadCountForUser(friend.username);
+              const isSelected = selectedUserId === friend._id;
 
               return (
                 <button
                   key={friend._id}
                   onClick={() => handleUserSelect(friend)}
-                  className={`w-full p-3 flex items-center gap-3 hover:bg-base-300 transition-colors ${
-                    selectedUserId === friend._id ? "bg-base-300" : ""
+                  className={`w-full p-3 mx-2 mb-1 flex items-center gap-3 rounded-xl transition-all duration-200 group ${
+                    isSelected 
+                      ? "bg-primary/10 border border-primary/20 shadow-sm" 
+                      : "hover:bg-base-200/80"
                   }`}
                 >
                   <div className="relative mx-auto lg:mx-0">
-                    <img
-                      src={friend.profilePic}
-                      alt={friend.fullName}
-                      className="size-12 object-cover rounded-full"
-                      onError={(e) => {
-                        e.target.src = '/avatar.png';
-                      }}
-                    />
+                    <div className="size-12 rounded-full ring-2 ring-base-300/50 shadow-sm overflow-hidden">
+                      <img
+                        src={friend.profilePic}
+                        alt={friend.fullName}
+                        className="size-12 object-cover rounded-full"
+                        onError={(e) => {
+                          e.target.src = '/avatar.png';
+                        }}
+                      />
+                    </div>
                     {friend.isOnline && (
-                     <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full ring-2 ring-white" />
+                     <span className="absolute bottom-0 right-0 h-3.5 w-3.5 bg-green-500 rounded-full ring-2 ring-white shadow-sm" />
                     )}
                   </div>
 
                   <div className={`${!isExpanded && 'hidden'} lg:block text-left min-w-0 flex-1`}>
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium truncate">{friend.fullName}</span>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`font-medium truncate transition-colors ${
+                        isSelected ? 'text-primary' : 'text-base-content group-hover:text-base-content'
+                      }`}>
+                        {friend.fullName}
+                      </span>
                       {lastMessage && (
-                        <span className="text-xs text-base-content/40">
+                        <span className="text-xs text-base-content/40 font-medium">
                           {formatMessageTime(lastMessage.createdAt)}
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-sm text-base-content/40 truncate max-w-[180px]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-base-content/60 truncate max-w-[180px] leading-relaxed">
                         {lastMessage ? lastMessage.text : 'Start a conversation'}
                       </span>
                       {unreadCount > 0 && (
-                        <span className="flex items-center justify-center min-w-5 h-5 text-xs font-medium bg-primary text-primary-content rounded-full px-1.5">
+                        <span className="flex items-center justify-center min-w-5 h-5 text-xs font-bold bg-primary text-primary-content rounded-full px-1.5 shadow-sm">
                           {unreadCount}
                         </span>
                       )}
@@ -270,14 +284,20 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
               );
             })
           ) : (
-            <div className="text-center text-base-content/40 py-8 px-4">
-              <Users className="size-12 mx-auto mb-3 opacity-40" />
-              <p className={`text-sm font-medium ${!isExpanded && 'hidden'} lg:block`}>
-                {searchQuery ? 'No friends found' : 'No friends yet'}
-              </p>
-              <p className={`text-xs mt-1 opacity-75 ${!isExpanded && 'hidden'} lg:block`}>
-                {searchQuery ? 'Try a different search term' : 'Add friends to start chatting'}
-              </p>
+            <div className="text-center text-base-content/40 py-12 px-4">
+              <div className="flex flex-col items-center gap-4">
+                <div className="size-16 rounded-full bg-base-200/50 flex items-center justify-center">
+                  <Users className="size-8 opacity-40" />
+                </div>
+                <div className={`${!isExpanded && 'hidden'} lg:block`}>
+                  <p className="text-sm font-medium mb-1">
+                    {searchQuery ? 'No friends found' : 'No friends yet'}
+                  </p>
+                  <p className="text-xs opacity-75 leading-relaxed">
+                    {searchQuery ? 'Try a different search term' : 'Add friends to start chatting'}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -285,16 +305,20 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
         {showDrawer && (
           <div
             ref={drawerRef}
-            className="absolute top-16 right-4 z-10 bg-base-100 border border-base-300 rounded-lg shadow-md p-1.5 min-w-36 animate-in fade-in zoom-in-95 duration-150"
+            className="absolute top-20 right-4 z-10 bg-base-100/95 backdrop-blur-sm border border-base-300/50 rounded-xl shadow-xl p-2 min-w-44 animate-in fade-in zoom-in-95 duration-200"
           >
             {drawerOptions.map((option) => (
               <button
                 key={option.id}
                 onClick={option.onClick}
-                className="w-full flex items-center gap-2.5 p-2.5 rounded-md hover:bg-base-200 transition-colors text-left text-sm"
+                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-base-200/80 transition-all duration-200 text-left text-sm group"
               >
-                {option.icon}
-                <span>{option.label}</span>
+                <div className={`${option.color} group-hover:scale-110 transition-transform duration-200`}>
+                  {option.icon}
+                </div>
+                <span className="font-medium text-base-content group-hover:text-base-content/80">
+                  {option.label}
+                </span>
               </button>
             ))}
           </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Phone, Video, Search, ChevronRight, ChevronDown } from "lucide-react";
+import { X, Phone, Video, Search, ChevronRight, ChevronDown, MoreVertical } from "lucide-react";
 
 const ChatHeader = ({ user, onClose }) => {
   const [showSearch, setShowSearch] = useState(false);
@@ -20,24 +20,25 @@ const ChatHeader = ({ user, onClose }) => {
   };
 
   return (
-    <div className="p-2.5 border-b border-base-300">
+    <div className="p-4 border-b border-base-300/50 bg-gradient-to-r from-base-100 to-base-50 backdrop-blur-sm">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="size-10 rounded-full">
+            <div className="size-12 rounded-full ring-2 ring-base-300/50 shadow-md overflow-hidden">
               <img
                 src={user.profilePic}
                 alt={user.fullName}
-                className="size-10 rounded-full object-cover"
+                className="size-12 rounded-full object-cover"
               />
               {user.isOnline && (
-                <span className="absolute bottom-0 right-0 size-3 bg-green-500 rounded-full ring-2 ring-white" />
+                <span className="absolute bottom-0 right-0 size-3.5 bg-green-500 rounded-full ring-2 ring-white shadow-sm" />
               )}
             </div>
           </div>
           <div>
-            <h3 className="font-medium">{user.fullName}</h3>
-            <p className="text-sm text-gray-500">
+            <h3 className="font-semibold text-base-content text-lg">{user.fullName}</h3>
+            <p className="text-sm text-base-content/60 flex items-center gap-2">
+              <span className={`size-2 rounded-full ${user.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
               {user.isOnline ? "Online" : "Offline"}
             </p>
           </div>
@@ -45,14 +46,14 @@ const ChatHeader = ({ user, onClose }) => {
 
         <div className="flex items-center">
           {/* Search input that appears when search icon is clicked */}
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out flex items-center mr-2 ${showSearch ? 'w-40 sm:w-56 opacity-100' : 'w-0 opacity-0'}`}>
+          <div className={`overflow-hidden transition-all duration-300 ease-in-out flex items-center mr-3 ${showSearch ? 'w-48 sm:w-64 opacity-100' : 'w-0 opacity-0'}`}>
             <div className="relative w-full">
               <input
                 type="text"
                 placeholder="Search conversation..."
-                className="w-full pl-8 pr-3 py-1.5 text-sm bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
+                className="w-full pl-10 pr-4 py-2.5 text-sm bg-base-200/80 backdrop-blur-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200 transition-all duration-200 border border-base-300/50"
               />
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 size-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-base-content/40" />
             </div>
           </div>
 
@@ -60,72 +61,69 @@ const ChatHeader = ({ user, onClose }) => {
           <div className="hidden sm:flex items-center gap-1">
             <button
               onClick={toggleSearch}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              className="p-2.5 rounded-xl hover:bg-base-200/80 transition-all duration-200 group"
               aria-label="Search conversation"
             >
-              <Search className="size-5 text-gray-600" />
+              <Search className="size-5 text-base-content/70 group-hover:text-base-content transition-colors" />
             </button>
             <button
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              className="p-2.5 rounded-xl hover:bg-base-200/80 transition-all duration-200 group"
               aria-label="Voice call"
             >
-              <Phone className="size-5 text-gray-600" />
+              <Phone className="size-5 text-base-content/70 group-hover:text-base-content transition-colors" />
             </button>
             <button
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              className="p-2.5 rounded-xl hover:bg-base-200/80 transition-all duration-200 group"
               aria-label="Video call"
             >
-              <Video className="size-5 text-gray-600" />
+              <Video className="size-5 text-base-content/70 group-hover:text-base-content transition-colors" />
             </button>
           </div>
 
           {/* Mobile view: collapsible menu */}
           <div className="sm:hidden relative">
             {expandActions ? (
-              <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[140px]">
+              <div className="absolute right-0 top-full mt-2 bg-base-100 rounded-xl shadow-xl border border-base-300/50 py-2 z-10 min-w-[160px] backdrop-blur-sm">
                 <button
                   onClick={toggleSearch}
-                  className="flex items-center w-full px-3 py-2 hover:bg-gray-50 transition-colors"
+                  className="flex items-center w-full px-4 py-3 hover:bg-base-200/80 transition-colors"
                   aria-label="Search conversation"
                 >
-                  <Search className="size-4 mr-2 text-gray-600" />
-                  <span className="text-sm">Search</span>
+                  <Search className="size-4 mr-3 text-base-content/70" />
+                  <span className="text-sm font-medium">Search</span>
                 </button>
                 <button
-                  className="flex items-center w-full px-3 py-2 hover:bg-gray-50 transition-colors"
+                  className="flex items-center w-full px-4 py-3 hover:bg-base-200/80 transition-colors"
                   aria-label="Voice call"
                 >
-                  <Phone className="size-4 mr-2 text-gray-600" />
-                  <span className="text-sm">Call</span>
+                  <Phone className="size-4 mr-3 text-base-content/70" />
+                  <span className="text-sm font-medium">Call</span>
                 </button>
                 <button
-                  className="flex items-center w-full px-3 py-2 hover:bg-gray-50 transition-colors"
+                  className="flex items-center w-full px-4 py-3 hover:bg-base-200/80 transition-colors"
                   aria-label="Video call"
                 >
-                  <Video className="size-4 mr-2 text-gray-600" />
-                  <span className="text-sm">Video</span>
+                  <Video className="size-4 mr-3 text-base-content/70" />
+                  <span className="text-sm font-medium">Video</span>
                 </button>
               </div>
             ) : null}
 
             <button
               onClick={toggleActions}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              className="p-2.5 rounded-xl hover:bg-base-200/80 transition-all duration-200 group"
               aria-label="More options"
             >
-              {expandActions ?
-                <ChevronDown className="size-5 text-gray-600" /> :
-                <ChevronRight className="size-5 text-gray-600" />
-              }
+              <MoreVertical className="size-5 text-base-content/70 group-hover:text-base-content transition-colors" />
             </button>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors ml-1"
+            className="p-2.5 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all duration-200 ml-2 group"
             aria-label="Close chat"
           >
-            <X className="size-5 text-gray-600" />
+            <X className="size-5 text-base-content/70 group-hover:text-red-600 transition-colors" />
           </button>
         </div>
       </div>

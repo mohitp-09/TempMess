@@ -62,22 +62,24 @@ const ChatContainer = ({ selectedUser, onClose }) => {
     <div className="flex-1 flex flex-col overflow-hidden bg-base-100">
       <ChatHeader user={selectedUser} onClose={onClose} />
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-base-100 to-base-50">
         {isLoading && messages.length === 0 ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin size-6 border-2 border-primary border-t-transparent rounded-full mr-3"></div>
-            <span className="text-base-content/60">Loading messages...</span>
+            <div className="flex items-center gap-3 bg-base-200/50 backdrop-blur-sm rounded-full px-6 py-3">
+              <div className="animate-spin size-5 border-2 border-primary border-t-transparent rounded-full"></div>
+              <span className="text-base-content/70 text-sm font-medium">Loading messages...</span>
+            </div>
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <span className="text-2xl">💬</span>
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="size-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center mb-6 shadow-lg">
+              <span className="text-3xl">💬</span>
             </div>
-            <h3 className="text-lg font-medium text-base-content mb-2">
+            <h3 className="text-xl font-semibold text-base-content mb-3">
               Start a conversation
             </h3>
-            <p className="text-base-content/60 max-w-sm">
-              Send a message to {selectedUser.fullName} to start your conversation.
+            <p className="text-base-content/60 max-w-sm leading-relaxed">
+              Send a message to <span className="font-medium text-primary">{selectedUser.fullName}</span> to start your conversation.
             </p>
           </div>
         ) : (
@@ -92,8 +94,10 @@ const ChatContainer = ({ selectedUser, onClose }) => {
             return (
               <div key={message._id}>
                 {showDateLabel && (
-                  <div className="text-center text-sm text-base-content/40 my-2">
-                    {getDateLabel(message.createdAt)}
+                  <div className="flex items-center justify-center my-6">
+                    <div className="bg-base-200/80 backdrop-blur-sm text-base-content/60 text-xs font-medium px-4 py-2 rounded-full shadow-sm">
+                      {getDateLabel(message.createdAt)}
+                    </div>
                   </div>
                 )}
 
@@ -102,7 +106,7 @@ const ChatContainer = ({ selectedUser, onClose }) => {
                   ref={index === messages.length - 1 ? messageEndRef : null}
                 >
                   <div className="chat-image avatar">
-                    <div className="size-10 rounded-full border border-base-300">
+                    <div className="size-10 rounded-full border-2 border-base-300/50 shadow-sm overflow-hidden">
                       <img
                         src={
                           isOwnMessage
@@ -110,7 +114,7 @@ const ChatContainer = ({ selectedUser, onClose }) => {
                             : selectedUser.profilePic
                         }
                         alt="profile pic"
-                        className="rounded-full"
+                        className="rounded-full object-cover"
                         onError={(e) => {
                           e.target.src = '/avatar.png';
                         }}
@@ -118,30 +122,40 @@ const ChatContainer = ({ selectedUser, onClose }) => {
                     </div>
                   </div>
                   <div className="chat-header mb-1">
-                    <time className="text-xs text-base-content/50 ml-1">
+                    <time className="text-xs text-base-content/50 ml-1 font-medium">
                       {formatMessageTime(message.createdAt)}
                     </time>
                     {message.isTemp && (
-                      <span className="text-xs text-base-content/40 ml-2">
+                      <span className="text-xs text-base-content/40 ml-2 flex items-center gap-1">
+                        <div className="size-2 bg-orange-400 rounded-full animate-pulse"></div>
                         Sending...
                       </span>
                     )}
                   </div>
                   <div
-                    className={`chat-bubble ${
+                    className={`chat-bubble shadow-md ${
                       isOwnMessage
-                        ? "bg-primary text-primary-content"
-                        : "bg-base-200 text-base-content"
-                    } flex flex-col`}
+                        ? "bg-gradient-to-br from-primary to-primary/90 text-primary-content border border-primary/20"
+                        : "bg-base-200 text-base-content border border-base-300/50"
+                    } flex flex-col relative`}
                   >
                     {message.image && (
                       <img
                         src={message.image}
                         alt="Attachment"
-                        className="max-w-[200px] rounded-md mb-2"
+                        className="max-w-[200px] rounded-lg mb-2 shadow-sm"
                       />
                     )}
-                    {message.text && <p>{message.text}</p>}
+                    {message.text && <p className="leading-relaxed">{message.text}</p>}
+                    
+                    {/* Message status indicator for sent messages */}
+                    {isOwnMessage && !message.isTemp && (
+                      <div className="absolute -bottom-1 -right-1 size-4 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg className="size-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
