@@ -4,6 +4,7 @@ import MessageInput from "./MessageInput";
 import { formatMessageTime, getDateLabel } from "../lib/utils";
 import { useChatStore } from "../store/useChatStore";
 import { getCurrentUserFromToken } from "../lib/jwtUtils";
+import { MessageSquare, Sparkles } from "lucide-react";
 
 const ChatContainer = ({ selectedUser, onClose }) => {
   const messageEndRef = useRef(null);
@@ -72,15 +73,48 @@ const ChatContainer = ({ selectedUser, onClose }) => {
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="size-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center mb-6 shadow-lg">
-              <span className="text-3xl">💬</span>
+            {/* App Icon with MessUp branding */}
+            <div className="relative mb-8">
+              <div className="size-24 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center shadow-xl border border-primary/20">
+                <MessageSquare className="w-12 h-12 text-primary" />
+              </div>
+              <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-primary/60 animate-pulse" />
+              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
+                <div className="bg-primary text-primary-content text-xs font-bold px-2 py-1 rounded-full shadow-md">
+                  MessUp
+                </div>
+              </div>
             </div>
-            <h3 className="text-xl font-semibold text-base-content mb-3">
-              Start a conversation
-            </h3>
-            <p className="text-base-content/60 max-w-sm leading-relaxed">
-              Send a message to <span className="font-medium text-primary">{selectedUser.fullName}</span> to start your conversation.
-            </p>
+
+            <div className="space-y-4 max-w-sm">
+              <h3 className="text-2xl font-bold text-base-content">
+                Ready to chat with{" "}
+                <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                  {selectedUser.fullName}
+                </span>
+                ?
+              </h3>
+              
+              <p className="text-base-content/60 leading-relaxed">
+                Break the ice and send your first message! Every great conversation starts with a simple "Hello" ✨
+              </p>
+
+              {/* Conversation starters */}
+              <div className="mt-6 space-y-2">
+                <p className="text-sm font-medium text-base-content/80 mb-3">💡 Conversation starters:</p>
+                <div className="grid gap-2 text-sm">
+                  <div className="bg-base-200/50 rounded-lg p-3 text-left border border-base-300/50">
+                    <span className="text-base-content/70">"Hey! How's your day going?"</span>
+                  </div>
+                  <div className="bg-base-200/50 rounded-lg p-3 text-left border border-base-300/50">
+                    <span className="text-base-content/70">"What's new with you?"</span>
+                  </div>
+                  <div className="bg-base-200/50 rounded-lg p-3 text-left border border-base-300/50">
+                    <span className="text-base-content/70">"Hope you're having a great day! 😊"</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           messages.map((message, index) => {
