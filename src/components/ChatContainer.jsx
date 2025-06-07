@@ -73,46 +73,41 @@ const ChatContainer = ({ selectedUser, onClose }) => {
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            {/* App Icon with MessUp branding */}
-            <div className="relative mb-8">
-              <div className="size-24 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center shadow-xl border border-primary/20">
-                <MessageSquare className="w-12 h-12 text-primary" />
-              </div>
-              <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-primary/60 animate-pulse" />
-              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
-                <div className="bg-primary text-primary-content text-xs font-bold px-2 py-1 rounded-full shadow-md">
-                  MessUp
+            {/* App Icon with MessUp branding - matching NoChatSelected style */}
+            <div className="flex justify-center gap-4 mb-8">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center animate-bounce shadow-lg border border-primary/20 backdrop-blur-sm">
+                  <MessageSquare className="w-10 h-10 text-primary" />
+                </div>
+                <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-primary/60 animate-pulse" />
+                <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
+                  <div className="bg-primary/90 backdrop-blur-sm text-primary-content text-xs font-bold px-3 py-1 rounded-full shadow-lg border border-primary/30">
+                    MessUp
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-4 max-w-sm">
-              <h3 className="text-2xl font-bold text-base-content">
-                Ready to chat with{" "}
-                <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                  {selectedUser.fullName}
-                </span>
-                ?
-              </h3>
-              
-              <p className="text-base-content/60 leading-relaxed">
-                Break the ice and send your first message! Every great conversation starts with a simple "Hello" ✨
-              </p>
+            <div className="space-y-6 max-w-sm">
+              <div className="space-y-3">
+                <h3 className="text-2xl font-bold text-base-content">
+                  Ready to chat with{" "}
+                  <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                    {selectedUser.fullName}
+                  </span>
+                  ?
+                </h3>
+                
+                <p className="text-base-content/60 leading-relaxed">
+                  Break the ice and send your first message! Every great conversation starts with a simple "Hello" ✨
+                </p>
+              </div>
 
-              {/* Conversation starters */}
-              <div className="mt-6 space-y-2">
-                <p className="text-sm font-medium text-base-content/80 mb-3">💡 Conversation starters:</p>
-                <div className="grid gap-2 text-sm">
-                  <div className="bg-base-200/50 rounded-lg p-3 text-left border border-base-300/50">
-                    <span className="text-base-content/70">"Hey! How's your day going?"</span>
-                  </div>
-                  <div className="bg-base-200/50 rounded-lg p-3 text-left border border-base-300/50">
-                    <span className="text-base-content/70">"What's new with you?"</span>
-                  </div>
-                  <div className="bg-base-200/50 rounded-lg p-3 text-left border border-base-300/50">
-                    <span className="text-base-content/70">"Hope you're having a great day! 😊"</span>
-                  </div>
-                </div>
+              {/* Quick action tip */}
+              <div className="mt-8 p-4 bg-primary/5 rounded-xl border border-primary/20 backdrop-blur-sm">
+                <p className="text-sm text-primary/80 font-medium">
+                  💡 Start typing in the message box below to begin your conversation
+                </p>
               </div>
             </div>
           </div>
