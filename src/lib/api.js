@@ -16,35 +16,18 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     if (token) {
       // Check if token is expired before making request
       if (isTokenExpired(token)) {
         console.warn('Token expired, removing from storage');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-<<<<<<< HEAD
-
-=======
         
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
         // Redirect to login if not already there
         if (window.location.pathname !== '/login') {
           window.location.href = '/login';
         }
-<<<<<<< HEAD
-
-        return Promise.reject(new Error('Token expired'));
-      }
-
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-=======
         
         return Promise.reject(new Error('Token expired'));
       }
@@ -52,7 +35,6 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     return config;
   },
   (error) => {
@@ -65,47 +47,28 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error('API Error:', error.response?.data || error.message);
-<<<<<<< HEAD
-
-    if (error.response?.status === 401) {
-      console.warn('Unauthorized request, clearing all auth data');
-
-=======
     
     if (error.response?.status === 401) {
       console.warn('Unauthorized request, clearing all auth data');
       
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       // Clear all possible auth-related localStorage items
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('authUser');
-<<<<<<< HEAD
-
-=======
       
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       // Clear any other auth-related items
       Object.keys(localStorage).forEach(key => {
         if (key.includes('auth') || key.includes('token') || key.includes('user')) {
           localStorage.removeItem(key);
         }
       });
-<<<<<<< HEAD
-
-=======
       
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       // Only redirect if not already on login page
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
     }
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     return Promise.reject(error);
   }
 );
@@ -116,11 +79,7 @@ export const login = async (credentials) => {
       email: credentials.email,
       password: credentials.password
     });
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message || 'Login failed');
@@ -134,11 +93,7 @@ export const register = async (userData) => {
       email: userData.email,
       password: userData.password
     });
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message || 'Registration failed');
@@ -154,13 +109,8 @@ export const searchUser = async (searchTerm) => {
     } else {
       params.username = searchTerm;
     }
-<<<<<<< HEAD
-
-    const response = await api.get('/api/users/search', { params });
-=======
     
     const response = await api.get('/users/search', { params });
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message || 'User search failed');
@@ -171,11 +121,7 @@ export const searchUser = async (searchTerm) => {
 export const getUserById = async (userId) => {
   try {
     console.log('Attempting to fetch user with ID:', userId);
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Try different possible endpoints
     let response;
     try {
@@ -189,30 +135,17 @@ export const getUserById = async (userId) => {
       } catch (error2) {
         console.log('Second endpoint failed, trying search...');
         // Third try: use search endpoint with ID
-<<<<<<< HEAD
-        response = await api.get('/users/search', {
-          params: { id: userId }
-        });
-      }
-    }
-
-=======
         response = await api.get('/users/search', { 
           params: { id: userId } 
         });
       }
     }
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     console.log('User fetch successful:', response.data);
     return response.data;
   } catch (error) {
     console.error('All user fetch attempts failed for ID:', userId, error);
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Return a fallback user object instead of throwing
     return {
       id: userId,
@@ -229,45 +162,26 @@ export const getAllFriends = async () => {
     console.log('Fetching friends list from backend...');
     const response = await api.get('/friends/getAllFriends');
     console.log('Friends response:', response.data);
-<<<<<<< HEAD
-
-    // Handle different response formats from backend
-    let friends = response.data;
-
-=======
     
     // Handle different response formats from backend
     let friends = response.data;
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // If response.data is an object with a friends array
     if (friends && typeof friends === 'object' && friends.friends) {
       friends = friends.friends;
     }
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // If response.data is an object with a data array
     if (friends && typeof friends === 'object' && friends.data) {
       friends = friends.data;
     }
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Ensure we return an array
     if (!Array.isArray(friends)) {
       console.warn('Friends response is not an array:', friends);
       return [];
     }
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Transform backend user data to match frontend format
     return friends.map(friend => ({
       _id: friend.id?.toString() || friend._id,
@@ -279,11 +193,7 @@ export const getAllFriends = async () => {
     }));
   } catch (error) {
     console.error('Failed to fetch friends:', error.response?.data || error.message);
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Return empty array if API fails
     return [];
   }
@@ -317,28 +227,16 @@ const createFriendsApi = () => {
     (response) => response,
     (error) => {
       console.error('Friends API Error:', error);
-<<<<<<< HEAD
-
-=======
       
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       // Handle different types of errors
       if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
         throw new Error('Unable to connect to server. Please ensure the backend is running on http://localhost:8080');
       }
-<<<<<<< HEAD
-
-      if (error.code === 'ECONNABORTED') {
-        throw new Error('Request timeout. Please try again.');
-      }
-
-=======
       
       if (error.code === 'ECONNABORTED') {
         throw new Error('Request timeout. Please try again.');
       }
       
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       return Promise.reject(error);
     }
   );
@@ -374,28 +272,16 @@ const createNotificationsApi = () => {
     (response) => response,
     (error) => {
       console.error('Notifications API Error:', error);
-<<<<<<< HEAD
-
-=======
       
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       // Handle different types of errors
       if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
         throw new Error('Unable to connect to server. Please ensure the backend is running on http://localhost:8080');
       }
-<<<<<<< HEAD
-
-      if (error.code === 'ECONNABORTED') {
-        throw new Error('Request timeout. Please try again.');
-      }
-
-=======
       
       if (error.code === 'ECONNABORTED') {
         throw new Error('Request timeout. Please try again.');
       }
       
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       return Promise.reject(error);
     }
   );
@@ -406,19 +292,6 @@ const createNotificationsApi = () => {
 export const sendFriendRequest = async (senderUsername, receiverUsername) => {
   try {
     console.log('Sending friend request:', { senderUsername, receiverUsername });
-<<<<<<< HEAD
-
-    const friendsApi = createFriendsApi();
-    const response = await friendsApi.post('/friends/request', null, {
-      params: {
-        senderUsername: senderUsername,
-        receiverUsername: receiverUsername
-      }
-    });
-
-    console.log('Friend request response:', response.data);
-
-=======
     
     const friendsApi = createFriendsApi();
     const response = await friendsApi.post('/friends/request', null, {
@@ -430,65 +303,31 @@ export const sendFriendRequest = async (senderUsername, receiverUsername) => {
     
     console.log('Friend request response:', response.data);
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Check if the response indicates users are already friends
     const responseMessage = response.data;
     if (typeof responseMessage === 'string') {
       const lowerMessage = responseMessage.toLowerCase();
-<<<<<<< HEAD
-
-      if (lowerMessage.includes('already friends')) {
-        throw new Error('ALREADY_FRIENDS');
-      }
-
-      if (lowerMessage.includes('already exists') ||
-=======
       
       if (lowerMessage.includes('already friends')) {
         throw new Error('ALREADY_FRIENDS');
       }
       
       if (lowerMessage.includes('already exists') || 
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
           lowerMessage.includes('pending') ||
           lowerMessage.includes('duplicate')) {
         throw new Error('FRIEND_REQUEST_EXISTS');
       }
     }
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     return response.data;
   } catch (error) {
     console.error('Friend request error:', error.response?.data || error.message);
     console.error('Full error:', error);
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Handle CORS and network errors
     if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
       throw new Error('Unable to connect to server. Please check if the backend is running and CORS is properly configured.');
     }
-<<<<<<< HEAD
-
-    // Handle specific error cases
-    const errorMessage = error.response?.data || error.message;
-
-    // Check for common "already exists" error patterns
-    if (typeof errorMessage === 'string') {
-      const lowerErrorMessage = errorMessage.toLowerCase();
-
-      if (lowerErrorMessage.includes('already friends')) {
-        throw new Error('ALREADY_FRIENDS');
-      }
-
-      if (lowerErrorMessage.includes('already') ||
-          lowerErrorMessage.includes('exists') ||
-=======
     
     // Handle specific error cases
     const errorMessage = error.response?.data || error.message;
@@ -503,27 +342,17 @@ export const sendFriendRequest = async (senderUsername, receiverUsername) => {
       
       if (lowerErrorMessage.includes('already') || 
           lowerErrorMessage.includes('exists') || 
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
           lowerErrorMessage.includes('pending') ||
           lowerErrorMessage.includes('duplicate')) {
         throw new Error('FRIEND_REQUEST_EXISTS');
       }
-<<<<<<< HEAD
-
-      if (lowerErrorMessage.includes('not found') ||
-=======
       
       if (lowerErrorMessage.includes('not found') || 
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
           lowerErrorMessage.includes('user not found')) {
         throw new Error('USER_NOT_FOUND');
       }
     }
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Default error
     throw new Error(errorMessage || 'Failed to send friend request');
   }
@@ -532,57 +361,33 @@ export const sendFriendRequest = async (senderUsername, receiverUsername) => {
 export const acceptFriendRequest = async (requestId) => {
   try {
     console.log('Accepting friend request with ID:', requestId);
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Validate requestId
     if (!requestId) {
       throw new Error('Invalid request ID');
     }
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     const friendsApi = createFriendsApi();
     const response = await friendsApi.post('/friends/accept', null, {
       params: { requestId: requestId.toString() }
     });
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     console.log('Accept friend request response:', response.data);
     return response.data;
   } catch (error) {
     console.error('Accept friend request error:', error.response?.data || error.message);
     console.error('Full error:', error);
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Handle CORS and network errors
     if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
       throw new Error('Unable to connect to server. Please check if the backend is running.');
     }
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Handle timeout
     if (error.code === 'ECONNABORTED') {
       throw new Error('Request timeout. Please try again.');
     }
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Handle specific error messages
     const errorMessage = error.response?.data?.message || error.response?.data || error.message;
     throw new Error(errorMessage || 'Failed to accept friend request');
@@ -592,57 +397,33 @@ export const acceptFriendRequest = async (requestId) => {
 export const rejectFriendRequest = async (requestId) => {
   try {
     console.log('Rejecting friend request with ID:', requestId);
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Validate requestId
     if (!requestId) {
       throw new Error('Invalid request ID');
     }
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     const friendsApi = createFriendsApi();
     const response = await friendsApi.post('/friends/reject', null, {
       params: { requestId: requestId.toString() }
     });
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     console.log('Reject friend request response:', response.data);
     return response.data;
   } catch (error) {
     console.error('Reject friend request error:', error.response?.data || error.message);
     console.error('Full error:', error);
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Handle CORS and network errors
     if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
       throw new Error('Unable to connect to server. Please check if the backend is running.');
     }
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Handle timeout
     if (error.code === 'ECONNABORTED') {
       throw new Error('Request timeout. Please try again.');
     }
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Handle specific error messages
     const errorMessage = error.response?.data?.message || error.response?.data || error.message;
     throw new Error(errorMessage || 'Failed to reject friend request');
@@ -656,53 +437,30 @@ export const getUnreadNotifications = async () => {
     const notificationsApi = createNotificationsApi();
     const response = await notificationsApi.get('/notifications/unread');
     console.log('Notifications response:', response.data);
-<<<<<<< HEAD
-
-    // Handle different response formats from backend
-    let notifications = response.data;
-
-=======
     
     // Handle different response formats from backend
     let notifications = response.data;
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // If response.data is an object with a notifications array
     if (notifications && typeof notifications === 'object' && notifications.notifications) {
       notifications = notifications.notifications;
     }
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // If response.data is an object with a data array
     if (notifications && typeof notifications === 'object' && notifications.data) {
       notifications = notifications.data;
     }
-<<<<<<< HEAD
-
-=======
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Ensure we return an array
     if (!Array.isArray(notifications)) {
       console.warn('Notifications response is not an array:', notifications);
       return [];
     }
-<<<<<<< HEAD
-
-    return notifications;
-  } catch (error) {
-    console.error('Failed to fetch notifications:', error.response?.data || error.message);
-
-=======
     
     return notifications;
   } catch (error) {
     console.error('Failed to fetch notifications:', error.response?.data || error.message);
     
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Return empty array if API fails - no mock data
     return [];
   }
@@ -719,8 +477,4 @@ export const markNotificationAsRead = async (notificationId) => {
   }
 };
 
-<<<<<<< HEAD
 export default api;
-=======
-export default api;
->>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
