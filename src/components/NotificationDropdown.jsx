@@ -78,7 +78,7 @@ const NotificationDropdown = () => {
         id: userId,
         username: 'Unknown User',
         email: '',
-        profilePic: '/avatar.png'
+        profilePic: null
       };
     }
   };
@@ -89,19 +89,30 @@ const NotificationDropdown = () => {
       const data = await getUnreadNotifications();
       const notificationsArray = Array.isArray(data) ? data : [];
       
-      const notificationsWithUserDetails = await Promise.all(
+      // Process notifications to get sender details instead of recipient details
+      const notificationsWithSenderDetails = await Promise.all(
         notificationsArray.map(async (notification) => {
           if (notification.type === 'FRIEND_REQUEST' || notification.type === 'friend_request') {
             const friendRequestId = notification.reference_id;
             
+            // The reference_id should point to the friend_request ID
+            // We need to get sender details from the backend
+            // For now, let's check if we have sender_id in the notification
             let senderDetails = null;
             let senderId = null;
             
-            if (notification.sender_id) {
-              senderId = notification.sender_id;
-            } else if (notification.senderDetails) {
+            // Check if backend already provides sender details
+            if (notification.senderDetails) {
               senderDetails = notification.senderDetails;
+            } else if (notification.sender_id) {
+              senderId = notification.sender_id;
             } else {
+              // If we have reference_id, we need to fetch the friend request details
+              // to get the sender_id, then fetch user details
+              console.log('Need to fetch sender details for reference_id:', friendRequestId);
+              
+              // For now, let's try to use reference_id as sender_id
+              // This should be fixed in the backend to properly join tables
               senderId = notification.reference_id;
             }
             
@@ -109,11 +120,12 @@ const NotificationDropdown = () => {
               try {
                 senderDetails = await fetchUserDetails(senderId);
               } catch (error) {
+                console.error('Failed to fetch sender details:', error);
                 senderDetails = {
                   id: senderId,
                   username: 'Unknown User',
                   email: '',
-                  profilePic: '/avatar.png'
+                  profilePic: null
                 };
               }
             }
@@ -130,7 +142,7 @@ const NotificationDropdown = () => {
         })
       );
       
-      setNotifications(notificationsWithUserDetails);
+      setNotifications(notificationsWithSenderDetails);
     } catch (error) {
       if (isOpen) {
         toast.error('Failed to fetch notifications');
@@ -253,18 +265,11 @@ const NotificationDropdown = () => {
     toast.success('Notifications refreshed');
   };
 
-  const getNotificationMessage = (notification) => {
-    if (notification.senderDetails) {
-      return `${notification.senderDetails.username} sent you a friend request`;
-    }
-    return notification.message || 'New friend request';
-  };
-
   const getUserAvatar = (notification) => {
     if (notification.senderDetails?.profilePic) {
       return notification.senderDetails.profilePic;
     }
-    return `/avatar.png`;
+    return null; // Return null to show initials instead
   };
 
   const getUserInitial = (notification) => {
@@ -328,7 +333,7 @@ const NotificationDropdown = () => {
                       <div className="flex items-start gap-3">
                         {/* User Avatar */}
                         <div className="size-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden ring-2 ring-base-200">
-                          {notification.senderDetails?.profilePic ? (
+                          {getUserAvatar(notification) ? (
                             <img 
                               src={getUserAvatar(notification)} 
                               alt={notification.senderDetails?.username || 'User'} 
@@ -341,7 +346,7 @@ const NotificationDropdown = () => {
                           ) : null}
                           <div 
                             className={`size-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center ${
-                              notification.senderDetails?.profilePic ? 'hidden' : 'flex'
+                              getUserAvatar(notification) ? 'hidden' : 'flex'
                             }`}
                           >
                             <span className="text-primary font-semibold text-sm">
