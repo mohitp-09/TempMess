@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { isTokenExpired } from './jwtUtils';
 
 // Configure axios with base URL
 const API_BASE_URL = 'http://localhost:8080/api';
@@ -11,13 +12,29 @@ const api = axios.create({
   withCredentials: true, // Important for CORS with credentials
 });
 
-// Add request interceptor to include auth token
+// Add request interceptor to include auth token and check expiration
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
+    
     if (token) {
+      // Check if token is expired before making request
+      if (isTokenExpired(token)) {
+        console.warn('Token expired, removing from storage');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        
+        // Redirect to login if not already there
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+        
+        return Promise.reject(new Error('Token expired'));
+      }
+      
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
     return config;
   },
   (error) => {
@@ -30,10 +47,18 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error('API Error:', error.response?.data || error.message);
+    
     if (error.response?.status === 401) {
+      console.warn('Unauthorized request, clearing token and redirecting to login');
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      localStorage.removeItem('user');
+      
+      // Only redirect if not already on login page
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
+    
     return Promise.reject(error);
   }
 );

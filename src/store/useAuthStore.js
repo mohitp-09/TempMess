@@ -4,7 +4,17 @@ import { getCurrentUserFromToken, isTokenExpired } from "../lib/jwtUtils";
 const useAuthStore = create((set, get) => ({
   isAuthenticated: (() => {
     const token = localStorage.getItem('token');
-    return token && !isTokenExpired(token);
+    if (!token) return false;
+    
+    // Check if token is expired
+    if (isTokenExpired(token)) {
+      // Clean up expired token
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return false;
+    }
+    
+    return true;
   })(),
   
   user: (() => {
@@ -49,8 +59,21 @@ const useAuthStore = create((set, get) => ({
       const userInfo = getCurrentUserFromToken();
       set({ user: userInfo });
       return userInfo;
+    } else {
+      // Token expired, logout user
+      get().logout();
+      return null;
     }
-    return null;
+  },
+  
+  // Check if current session is valid
+  checkAuthStatus: () => {
+    const token = localStorage.getItem('token');
+    if (!token || isTokenExpired(token)) {
+      get().logout();
+      return false;
+    }
+    return true;
   }
 }));
 

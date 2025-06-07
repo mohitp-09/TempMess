@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
 import Navbar from "./components/Navbar";
 import HomePage from "./pages/HomePage";
 import SettingsPage from "./pages/SettingsPage";
@@ -12,7 +13,20 @@ import { useAuthStore } from "./store/useAuthStore";
 
 const App = () => {
   const { theme } = useThemeStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, checkAuthStatus } = useAuthStore();
+
+  // Check auth status on app load and periodically
+  useEffect(() => {
+    // Check immediately
+    checkAuthStatus();
+    
+    // Check every 5 minutes
+    const interval = setInterval(() => {
+      checkAuthStatus();
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    return () => clearInterval(interval);
+  }, [checkAuthStatus]);
 
   return (
     <div data-theme={theme}>
