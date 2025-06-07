@@ -42,19 +42,33 @@ const NotificationDropdown = () => {
 
   useEffect(() => {
     fetchNotifications();
+<<<<<<< HEAD
 
     const interval = setInterval(() => {
       fetchNotifications();
     }, 120000);
 
+=======
+    
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 120000);
+    
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     const handleFriendRequestSent = () => {
       setTimeout(() => {
         fetchNotifications();
       }, 1000);
     };
+<<<<<<< HEAD
 
     window.addEventListener('friendRequestSent', handleFriendRequestSent);
 
+=======
+    
+    window.addEventListener('friendRequestSent', handleFriendRequestSent);
+    
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     return () => {
       clearInterval(interval);
       window.removeEventListener('friendRequestSent', handleFriendRequestSent);
@@ -70,7 +84,11 @@ const NotificationDropdown = () => {
       console.log('Fetching user details for ID:', userId);
       const userDetails = await getUserById(userId);
       console.log('User details fetched:', userDetails);
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       setUserCache(prev => ({
         ...prev,
         [userId]: userDetails
@@ -78,7 +96,11 @@ const NotificationDropdown = () => {
       return userDetails;
     } catch (error) {
       console.error('Failed to fetch user details for ID:', userId, error);
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       // Return fallback user data
       const fallbackUser = {
         id: userId,
@@ -86,12 +108,20 @@ const NotificationDropdown = () => {
         email: '',
         profilePic: null
       };
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       setUserCache(prev => ({
         ...prev,
         [userId]: fallbackUser
       }));
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       return fallbackUser;
     }
   };
@@ -101,32 +131,55 @@ const NotificationDropdown = () => {
     try {
       const data = await getUnreadNotifications();
       const notificationsArray = Array.isArray(data) ? data : [];
+<<<<<<< HEAD
 
       console.log('Raw notifications from backend:', notificationsArray);
 
+=======
+      
+      console.log('Raw notifications from backend:', notificationsArray);
+      
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       // Simple approach: reference_id = sender's user ID
       const notificationsWithSenderDetails = await Promise.all(
         notificationsArray.map(async (notification) => {
           if (notification.type === 'FRIEND_REQUEST' || notification.type === 'friend_request') {
             // reference_id IS the sender's user ID - simple!
             const senderUserId = notification.reference_id;
+<<<<<<< HEAD
 
             console.log('Getting user details for sender ID:', senderUserId);
 
             // Fetch sender details using reference_id as user ID
             const senderDetails = await fetchUserDetails(senderUserId);
 
+=======
+            
+            console.log('Getting user details for sender ID:', senderUserId);
+            
+            // Fetch sender details using reference_id as user ID
+            const senderDetails = await fetchUserDetails(senderUserId);
+            
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
             return {
               ...notification,
               senderDetails: senderDetails,
               friendRequestId: notification.id, // Use notification ID for actions
             };
           }
+<<<<<<< HEAD
 
           return notification;
         })
       );
 
+=======
+          
+          return notification;
+        })
+      );
+      
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       console.log('Processed notifications:', notificationsWithSenderDetails);
       setNotifications(notificationsWithSenderDetails);
     } catch (error) {
@@ -167,7 +220,11 @@ const NotificationDropdown = () => {
       await handleMarkAsRead(notificationId);
       toast.success('Friend request accepted!');
       fetchNotifications();
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       // Trigger event to refresh friends list in sidebar
       window.dispatchEvent(new CustomEvent('friendRequestAccepted'));
     } catch (error) {
@@ -314,16 +371,26 @@ const NotificationDropdown = () => {
                 {notifications.map((notification) => {
                   const requestId = notification.friendRequestId || notification.id;
                   const isProcessing = processingRequests.has(requestId);
+<<<<<<< HEAD
 
+=======
+                  
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
                   return (
                     <div key={notification.id} className="px-4 py-3 hover:bg-base-50 transition-colors border-b border-base-200 last:border-b-0">
                       <div className="flex items-start gap-3">
                         {/* User Avatar */}
                         <div className="size-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden ring-2 ring-base-200">
                           {getUserAvatar(notification) ? (
+<<<<<<< HEAD
                             <img
                               src={getUserAvatar(notification)}
                               alt={notification.senderDetails?.username || 'User'}
+=======
+                            <img 
+                              src={getUserAvatar(notification)} 
+                              alt={notification.senderDetails?.username || 'User'} 
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
                               className="size-10 rounded-full object-cover"
                               onError={(e) => {
                                 e.target.style.display = 'none';
@@ -331,7 +398,11 @@ const NotificationDropdown = () => {
                               }}
                             />
                           ) : null}
+<<<<<<< HEAD
                           <div
+=======
+                          <div 
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
                             className={`size-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center ${
                               getUserAvatar(notification) ? 'hidden' : 'flex'
                             }`}
@@ -341,7 +412,11 @@ const NotificationDropdown = () => {
                             </span>
                           </div>
                         </div>
+<<<<<<< HEAD
 
+=======
+                        
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
@@ -359,7 +434,11 @@ const NotificationDropdown = () => {
                                 <span>Friend Request</span>
                               </p>
                             </div>
+<<<<<<< HEAD
 
+=======
+                            
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
                             {/* Action Icons - Right Side */}
                             {(notification.type === 'FRIEND_REQUEST' || notification.type === 'friend_request') && (
                               <div className="flex items-center gap-1 ml-2">
@@ -390,7 +469,11 @@ const NotificationDropdown = () => {
                               </div>
                             )}
                           </div>
+<<<<<<< HEAD
 
+=======
+                          
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
                           {/* General notification mark as read */}
                           {notification.type !== 'FRIEND_REQUEST' && notification.type !== 'friend_request' && (
                             <button
@@ -414,4 +497,8 @@ const NotificationDropdown = () => {
   );
 };
 
+<<<<<<< HEAD
 export default NotificationDropdown;
+=======
+export default NotificationDropdown;
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14

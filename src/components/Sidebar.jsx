@@ -22,18 +22,30 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
   ];
 
   const drawerOptions = [
+<<<<<<< HEAD
     {
       id: "newGroup",
       label: "New Group",
+=======
+    { 
+      id: "newGroup", 
+      label: "New Group", 
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       icon: <UsersRound className="size-5" />,
       onClick: () => {
         console.log("New Group clicked");
         setShowDrawer(false);
       }
     },
+<<<<<<< HEAD
     {
       id: "addUser",
       label: "Add User",
+=======
+    { 
+      id: "addUser", 
+      label: "Add User", 
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       icon: <Users className="size-5" />,
       onClick: () => {
         setShowAddUserModal(true);
@@ -70,9 +82,15 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
         fetchFriends();
       }, 1000);
     };
+<<<<<<< HEAD
 
     window.addEventListener('friendRequestAccepted', handleFriendRequestAccepted);
 
+=======
+    
+    window.addEventListener('friendRequestAccepted', handleFriendRequestAccepted);
+    
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     return () => {
       window.removeEventListener('friendRequestAccepted', handleFriendRequestAccepted);
     };
@@ -299,9 +317,15 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
       </aside>
 
       {/* Add User Modal */}
+<<<<<<< HEAD
       <AddUserModal
         isOpen={showAddUserModal}
         onClose={() => setShowAddUserModal(false)}
+=======
+      <AddUserModal 
+        isOpen={showAddUserModal} 
+        onClose={() => setShowAddUserModal(false)} 
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       />
     </>
   );

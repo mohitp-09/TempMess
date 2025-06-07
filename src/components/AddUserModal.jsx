@@ -37,19 +37,30 @@ const AddUserModal = ({ isOpen, onClose }) => {
     try {
       // Get current user's username from JWT token
       const currentUser = getCurrentUserFromToken();
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       if (!currentUser || !currentUser.username) {
         toast.error('Unable to get current user information. Please try logging in again.');
         return;
       }
+<<<<<<< HEAD
 
       const senderUsername = currentUser.username;
 
+=======
+      
+      const senderUsername = currentUser.username;
+      
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       // Check if trying to send request to themselves
       if (senderUsername === searchResult.username) {
         toast.error("You can't send a friend request to yourself!");
         return;
       }
+<<<<<<< HEAD
 
       console.log('Sending friend request from:', senderUsername, 'to:', searchResult.username);
 
@@ -57,12 +68,22 @@ const AddUserModal = ({ isOpen, onClose }) => {
       toast.success('Friend request sent successfully!');
       setRequestSent(true);
 
+=======
+      
+      console.log('Sending friend request from:', senderUsername, 'to:', searchResult.username);
+      
+      await sendFriendRequest(senderUsername, searchResult.username);
+      toast.success('Friend request sent successfully!');
+      setRequestSent(true);
+      
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       // Auto close modal after 2 seconds
       setTimeout(() => {
         setSearchResult(null);
         setSearchTerm('');
         setRequestSent(false);
         onClose();
+<<<<<<< HEAD
 
         // Trigger a custom event to refresh notifications
         window.dispatchEvent(new CustomEvent('friendRequestSent'));
@@ -71,6 +92,16 @@ const AddUserModal = ({ isOpen, onClose }) => {
     } catch (error) {
       console.error('Friend request failed:', error);
 
+=======
+        
+        // Trigger a custom event to refresh notifications
+        window.dispatchEvent(new CustomEvent('friendRequestSent'));
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Friend request failed:', error);
+      
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       // Handle specific error cases with user-friendly messages
       switch (error.message) {
         case 'FRIEND_REQUEST_EXISTS':
@@ -167,7 +198,11 @@ const AddUserModal = ({ isOpen, onClose }) => {
                   <p className="text-sm text-base-content/60">{searchResult.email}</p>
                 </div>
               </div>
+<<<<<<< HEAD
 
+=======
+              
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
               {requestSent ? (
                 <div className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-green-500 text-white rounded-lg">
                   <Check className="size-4" />
@@ -203,4 +238,8 @@ const AddUserModal = ({ isOpen, onClose }) => {
   );
 };
 
+<<<<<<< HEAD
 export default AddUserModal;
+=======
+export default AddUserModal;
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14

@@ -19,12 +19,20 @@ const App = () => {
   useEffect(() => {
     // Check immediately
     checkAuthStatus();
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     // Check every 5 minutes
     const interval = setInterval(() => {
       checkAuthStatus();
     }, 5 * 60 * 1000); // 5 minutes
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
     return () => clearInterval(interval);
   }, [checkAuthStatus]);
 

@@ -9,6 +9,7 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     console.log('Logout button clicked');
+<<<<<<< HEAD
 
     try {
       // Call the logout function from store
@@ -24,6 +25,23 @@ const Navbar = () => {
     } catch (error) {
       console.error('Error during logout:', error);
 
+=======
+    
+    try {
+      // Call the logout function from store
+      logout();
+      
+      // Force a small delay to ensure state updates
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Navigate to login page
+      navigate('/login', { replace: true });
+      
+      console.log('Redirected to login page');
+    } catch (error) {
+      console.error('Error during logout:', error);
+      
+>>>>>>> d93c49517c5652f7c2fb44e15edf610db186ab14
       // Force logout even if there's an error
       localStorage.clear();
       navigate('/login', { replace: true });
