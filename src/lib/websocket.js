@@ -1,5 +1,5 @@
 import SockJS from 'sockjs-client';
-import { Client } from '@stomp/stompjs';
+import Stomp from 'stompjs';
 
 class WebSocketService {
   constructor() {
@@ -15,56 +15,32 @@ class WebSocketService {
   connect(username) {
     return new Promise((resolve, reject) => {
       try {
-        // Create SockJS connection
-        const socket = new SockJS('http://localhost:8080/ws');
+        // Use the same endpoint as your working HTML example
+        const socket = new SockJS('http://localhost:8080/chat');
+        this.stompClient = Stomp.over(socket);
         
-        // Create STOMP client
-        this.stompClient = new Client({
-          webSocketFactory: () => socket,
-          connectHeaders: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'username': username
+        // Disable debug logging in production
+        this.stompClient.debug = null;
+
+        this.stompClient.connect(
+          {}, // Empty headers object like in your HTML example
+          (frame) => {
+            console.log('Connected to WebSocket:', frame);
+            this.connected = true;
+            this.reconnectAttempts = 0;
+            
+            // Subscribe to private messages for this user
+            this.subscribeToPrivateMessages(username);
+            
+            resolve(frame);
           },
-          debug: (str) => {
-            console.log('STOMP Debug:', str);
-          },
-          reconnectDelay: 5000,
-          heartbeatIncoming: 4000,
-          heartbeatOutgoing: 4000,
-        });
-
-        // Set up connection handlers
-        this.stompClient.onConnect = (frame) => {
-          console.log('Connected to WebSocket:', frame);
-          this.connected = true;
-          this.reconnectAttempts = 0;
-          
-          // Subscribe to private messages for this user
-          this.subscribeToPrivateMessages(username);
-          
-          resolve(frame);
-        };
-
-        this.stompClient.onStompError = (frame) => {
-          console.error('STOMP error:', frame);
-          this.connected = false;
-          reject(new Error('STOMP connection error'));
-        };
-
-        this.stompClient.onWebSocketError = (error) => {
-          console.error('WebSocket error:', error);
-          this.connected = false;
-          this.handleReconnect(username);
-          reject(error);
-        };
-
-        this.stompClient.onDisconnect = () => {
-          console.log('Disconnected from WebSocket');
-          this.connected = false;
-        };
-
-        // Activate the client
-        this.stompClient.activate();
+          (error) => {
+            console.error('WebSocket connection error:', error);
+            this.connected = false;
+            this.handleReconnect(username);
+            reject(error);
+          }
+        );
       } catch (error) {
         console.error('Failed to create WebSocket connection:', error);
         reject(error);
@@ -78,6 +54,7 @@ class WebSocketService {
       return;
     }
 
+    // Use the exact same subscription path as your HTML example
     const subscription = this.stompClient.subscribe(
       `/user/${username}/private`,
       (message) => {
@@ -109,19 +86,16 @@ class WebSocketService {
       throw new Error('WebSocket not connected');
     }
 
+    // Use the exact same payload structure as your HTML example
     const messageData = {
       sender: sender,
       receiver: receiver,
-      message: message,
-      timestamp: new Date().toISOString()
+      message: message
     };
 
     try {
-      this.stompClient.publish({
-        destination: '/app/sendPrivateMessage',
-        body: JSON.stringify(messageData)
-      });
-      
+      // Use the exact same destination as your HTML example
+      this.stompClient.send('/app/sendPrivateMessage', {}, JSON.stringify(messageData));
       console.log('Message sent:', messageData);
       return messageData;
     } catch (error) {
@@ -164,8 +138,10 @@ class WebSocketService {
       // Clear message handlers
       this.messageHandlers.clear();
       
-      // Deactivate the client
-      this.stompClient.deactivate();
+      // Disconnect
+      this.stompClient.disconnect(() => {
+        console.log('Disconnected from WebSocket');
+      });
       
       this.connected = false;
       this.stompClient = null;
