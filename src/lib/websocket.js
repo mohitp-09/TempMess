@@ -1,4 +1,4 @@
-import SockJS from 'sockjs-client/dist/sockjs.min.js';
+import SockJS from 'sockjs-client';
 import Stomp from 'stompjs';
 
 class WebSocketService {
