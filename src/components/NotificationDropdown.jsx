@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Check, X, UserPlus, RefreshCw } from 'lucide-react';
-import { getUnreadNotifications, markNotificationAsRead, acceptFriendRequest, rejectFriendRequest } from '../lib/api';
+import { getUnreadNotifications, markNotificationAsRead, acceptFriendRequest, rejectFriendRequest, getUserById } from '../lib/api';
 import toast from 'react-hot-toast';
 
 const NotificationDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [userCache, setUserCache] = useState({}); // Cache for user details
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -63,12 +64,67 @@ const NotificationDropdown = () => {
     };
   }, []);
 
+  const fetchUserDetails = async (userId) => {
+    // Check cache first
+    if (userCache[userId]) {
+      return userCache[userId];
+    }
+
+    try {
+      const userDetails = await getUserById(userId);
+      // Cache the user details
+      setUserCache(prev => ({
+        ...prev,
+        [userId]: userDetails
+      }));
+      return userDetails;
+    } catch (error) {
+      console.error(`Failed to fetch user details for ID ${userId}:`, error);
+      // Return a default user object
+      return {
+        id: userId,
+        username: 'Unknown User',
+        email: '',
+        profilePic: '/avatar.png' // Default avatar
+      };
+    }
+  };
+
   const fetchNotifications = async () => {
     setIsLoading(true);
     try {
       const data = await getUnreadNotifications();
       console.log('Fetched notifications:', data);
-      setNotifications(Array.isArray(data) ? data : []);
+      
+      const notificationsArray = Array.isArray(data) ? data : [];
+      
+      // Fetch user details for each notification that has a senderId
+      const notificationsWithUserDetails = await Promise.all(
+        notificationsArray.map(async (notification) => {
+          if (notification.senderId || notification.senderUserId) {
+            const userId = notification.senderId || notification.senderUserId;
+            try {
+              const userDetails = await fetchUserDetails(userId);
+              return {
+                ...notification,
+                senderDetails: userDetails
+              };
+            } catch (error) {
+              console.error('Failed to fetch sender details:', error);
+              return {
+                ...notification,
+                senderDetails: {
+                  username: 'Unknown User',
+                  profilePic: '/avatar.png'
+                }
+              };
+            }
+          }
+          return notification;
+        })
+      );
+      
+      setNotifications(notificationsWithUserDetails);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
       // Don't show error toast for background fetches
@@ -150,6 +206,29 @@ const NotificationDropdown = () => {
     toast.success('Notifications refreshed');
   };
 
+  const getNotificationMessage = (notification) => {
+    if (notification.senderDetails) {
+      return `${notification.senderDetails.username} sent you a friend request`;
+    }
+    return notification.message || 'New friend request';
+  };
+
+  const getUserAvatar = (notification) => {
+    if (notification.senderDetails?.profilePic) {
+      return notification.senderDetails.profilePic;
+    }
+    // Generate a default avatar based on username
+    const username = notification.senderDetails?.username || 'U';
+    return `/avatar.png`; // Use default avatar for now
+  };
+
+  const getUserInitial = (notification) => {
+    if (notification.senderDetails?.username) {
+      return notification.senderDetails.username.charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -198,14 +277,40 @@ const NotificationDropdown = () => {
                 {notifications.map((notification) => (
                   <div key={notification.id} className="p-3 hover:bg-base-200/50 transition-colors">
                     <div className="flex items-start gap-3">
-                      <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <UserPlus className="size-4 text-primary" />
+                      {/* User Avatar */}
+                      <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {notification.senderDetails?.profilePic ? (
+                          <img 
+                            src={getUserAvatar(notification)} 
+                            alt={notification.senderDetails?.username || 'User'} 
+                            className="size-10 rounded-full object-cover"
+                            onError={(e) => {
+                              // Fallback to initial if image fails to load
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        <div 
+                          className={`size-10 rounded-full bg-primary/10 flex items-center justify-center ${
+                            notification.senderDetails?.profilePic ? 'hidden' : 'flex'
+                          }`}
+                        >
+                          <span className="text-primary font-medium text-sm">
+                            {getUserInitial(notification)}
+                          </span>
+                        </div>
                       </div>
                       
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-base-content">
-                          {notification.message || 'New friend request'}
+                          {getNotificationMessage(notification)}
                         </p>
+                        {notification.senderDetails?.email && (
+                          <p className="text-xs text-base-content/50 mt-0.5">
+                            {notification.senderDetails.email}
+                          </p>
+                        )}
                         <p className="text-xs text-base-content/60 mt-1">
                           {formatTimeAgo(notification.createdAt || notification.timestamp)}
                         </p>

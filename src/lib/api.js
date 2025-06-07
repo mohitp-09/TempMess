@@ -117,6 +117,17 @@ export const searchUser = async (searchTerm) => {
   }
 };
 
+// Get user by ID - NEW FUNCTION
+export const getUserById = async (userId) => {
+  try {
+    const response = await api.get(`/users/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch user by ID:', error);
+    throw new Error(error.response?.data?.message || 'Failed to fetch user details');
+  }
+};
+
 // Friend requests - Using direct URL without /api prefix to match your backend
 export const sendFriendRequest = async (senderUsername, receiverUsername) => {
   try {
