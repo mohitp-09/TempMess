@@ -72,9 +72,9 @@ const MessageInput = ({ onSendMessage }) => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex items-end gap-3">
+      <form onSubmit={handleSubmit} className="flex items-center gap-3">
         <div className="relative flex-1">
-          <div className={`relative flex items-end gap-2 bg-base-200/80 backdrop-blur-sm rounded-2xl border-2 transition-all duration-200 ${
+          <div className={`relative flex items-center bg-base-200/80 backdrop-blur-sm rounded-2xl border-2 transition-all duration-200 ${
             isFocused ? 'border-primary/50 shadow-lg shadow-primary/10' : 'border-base-300/50'
           }`}>
             <input
@@ -87,10 +87,11 @@ const MessageInput = ({ onSendMessage }) => {
               onBlur={() => setIsFocused(false)}
             />
             
-            <div className="flex items-center gap-1 pr-2">
+            {/* Fixed icon alignment container */}
+            <div className="flex items-center gap-1 pr-3">
               <button
                 type="button"
-                className="p-2 rounded-full hover:bg-base-300/80 transition-all duration-200 group"
+                className="p-2 rounded-full hover:bg-base-300/80 transition-all duration-200 group flex items-center justify-center"
                 title="Emoji"
               >
                 <Smile size={18} className="text-base-content/60 group-hover:text-base-content transition-colors" />
@@ -98,7 +99,7 @@ const MessageInput = ({ onSendMessage }) => {
               
               <button
                 type="button"
-                className="p-2 rounded-full hover:bg-base-300/80 transition-all duration-200 group relative"
+                className="p-2 rounded-full hover:bg-base-300/80 transition-all duration-200 group relative flex items-center justify-center"
                 onClick={() => setShowDrawer(!showDrawer)}
                 title="Attach"
               >
