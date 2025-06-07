@@ -74,6 +74,7 @@ const NotificationDropdown = () => {
       }));
       return userDetails;
     } catch (error) {
+      console.error('Failed to fetch user details for ID:', userId, error);
       return {
         id: userId,
         username: 'Unknown User',
@@ -89,38 +90,30 @@ const NotificationDropdown = () => {
       const data = await getUnreadNotifications();
       const notificationsArray = Array.isArray(data) ? data : [];
       
-      // Process notifications to get sender details instead of recipient details
+      console.log('Raw notifications from backend:', notificationsArray);
+      
+      // Process notifications to get sender details using reference_id
       const notificationsWithSenderDetails = await Promise.all(
         notificationsArray.map(async (notification) => {
           if (notification.type === 'FRIEND_REQUEST' || notification.type === 'friend_request') {
-            const friendRequestId = notification.reference_id;
+            // reference_id is the sender's user ID according to your clarification
+            const senderId = notification.reference_id;
             
-            // The reference_id should point to the friend_request ID
-            // We need to get sender details from the backend
-            // For now, let's check if we have sender_id in the notification
+            console.log('Fetching sender details for user ID:', senderId);
+            
             let senderDetails = null;
-            let senderId = null;
             
             // Check if backend already provides sender details
             if (notification.senderDetails) {
               senderDetails = notification.senderDetails;
-            } else if (notification.sender_id) {
-              senderId = notification.sender_id;
-            } else {
-              // If we have reference_id, we need to fetch the friend request details
-              // to get the sender_id, then fetch user details
-              console.log('Need to fetch sender details for reference_id:', friendRequestId);
-              
-              // For now, let's try to use reference_id as sender_id
-              // This should be fixed in the backend to properly join tables
-              senderId = notification.reference_id;
-            }
-            
-            if (senderId && !senderDetails) {
+              console.log('Using provided sender details:', senderDetails);
+            } else if (senderId) {
+              // Fetch sender details using the reference_id as user ID
               try {
                 senderDetails = await fetchUserDetails(senderId);
+                console.log('Fetched sender details:', senderDetails);
               } catch (error) {
-                console.error('Failed to fetch sender details:', error);
+                console.error('Failed to fetch sender details for user ID:', senderId, error);
                 senderDetails = {
                   id: senderId,
                   username: 'Unknown User',
@@ -133,8 +126,8 @@ const NotificationDropdown = () => {
             return {
               ...notification,
               senderDetails: senderDetails,
-              friendRequestId: friendRequestId,
-              originalReferenceId: notification.reference_id
+              friendRequestId: notification.id, // Use notification ID as friend request ID
+              senderId: senderId
             };
           }
           
@@ -142,8 +135,10 @@ const NotificationDropdown = () => {
         })
       );
       
+      console.log('Processed notifications with sender details:', notificationsWithSenderDetails);
       setNotifications(notificationsWithSenderDetails);
     } catch (error) {
+      console.error('Failed to fetch notifications:', error);
       if (isOpen) {
         toast.error('Failed to fetch notifications');
       }
@@ -325,7 +320,7 @@ const NotificationDropdown = () => {
             ) : (
               <div>
                 {notifications.map((notification) => {
-                  const requestId = notification.friendRequestId || notification.reference_id;
+                  const requestId = notification.friendRequestId || notification.id;
                   const isProcessing = processingRequests.has(requestId);
                   
                   return (
@@ -373,31 +368,31 @@ const NotificationDropdown = () => {
                               </p>
                             </div>
                             
-                            {/* Action Buttons - Right Side */}
+                            {/* Action Icons - Right Side */}
                             {(notification.type === 'FRIEND_REQUEST' || notification.type === 'friend_request') && (
                               <div className="flex items-center gap-1 ml-2">
                                 <button
                                   onClick={() => handleAcceptFriendRequest(requestId, notification.id)}
                                   disabled={isProcessing || !requestId}
-                                  className="size-8 flex items-center justify-center bg-green-500 hover:bg-green-600 text-white rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                                  className="size-7 flex items-center justify-center bg-green-500 hover:bg-green-600 text-white rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
                                   title="Accept friend request"
                                 >
                                   {isProcessing ? (
                                     <div className="size-3 border border-white border-t-transparent rounded-full animate-spin" />
                                   ) : (
-                                    <Check className="size-4" />
+                                    <Check className="size-3.5" />
                                   )}
                                 </button>
                                 <button
                                   onClick={() => handleRejectFriendRequest(requestId, notification.id)}
                                   disabled={isProcessing || !requestId}
-                                  className="size-8 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                                  className="size-7 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
                                   title="Reject friend request"
                                 >
                                   {isProcessing ? (
                                     <div className="size-3 border border-white border-t-transparent rounded-full animate-spin" />
                                   ) : (
-                                    <X className="size-4" />
+                                    <X className="size-3.5" />
                                   )}
                                 </button>
                               </div>
