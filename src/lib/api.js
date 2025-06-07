@@ -128,20 +128,15 @@ export const getUserById = async (userId) => {
   }
 };
 
-// Friend requests - Using direct URL without /api prefix to match your backend
+// Friend requests - Using the main api instance with proper base URL
 export const sendFriendRequest = async (senderUsername, receiverUsername) => {
   try {
     console.log('Sending friend request:', { senderUsername, receiverUsername });
     
-    const response = await axios.post('http://localhost:8080/friends/request', null, {
+    const response = await api.post('/friends/request', null, {
       params: { 
         senderUsername: senderUsername, 
         receiverUsername: receiverUsername 
-      },
-      withCredentials: true,
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json'
       }
     });
     
@@ -183,35 +178,41 @@ export const sendFriendRequest = async (senderUsername, receiverUsername) => {
 
 export const acceptFriendRequest = async (requestId) => {
   try {
-    const response = await axios.post('http://localhost:8080/friends/accept', null, {
-      params: { requestId },
-      withCredentials: true,
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json'
-      }
+    console.log('Accepting friend request with ID:', requestId);
+    
+    const response = await api.post('/friends/accept', null, {
+      params: { requestId }
     });
+    
+    console.log('Accept friend request response:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Accept friend request error:', error.response?.data);
-    throw new Error(error.response?.data || 'Failed to accept friend request');
+    console.error('Accept friend request error:', error.response?.data || error.message);
+    console.error('Full error:', error);
+    
+    // Handle specific error messages
+    const errorMessage = error.response?.data?.message || error.response?.data || error.message;
+    throw new Error(errorMessage || 'Failed to accept friend request');
   }
 };
 
 export const rejectFriendRequest = async (requestId) => {
   try {
-    const response = await axios.post('http://localhost:8080/friends/reject', null, {
-      params: { requestId },
-      withCredentials: true,
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json'
-      }
+    console.log('Rejecting friend request with ID:', requestId);
+    
+    const response = await api.post('/friends/reject', null, {
+      params: { requestId }
     });
+    
+    console.log('Reject friend request response:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Reject friend request error:', error.response?.data);
-    throw new Error(error.response?.data || 'Failed to reject friend request');
+    console.error('Reject friend request error:', error.response?.data || error.message);
+    console.error('Full error:', error);
+    
+    // Handle specific error messages
+    const errorMessage = error.response?.data?.message || error.response?.data || error.message;
+    throw new Error(errorMessage || 'Failed to reject friend request');
   }
 };
 
