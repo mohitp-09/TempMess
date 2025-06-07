@@ -12,28 +12,35 @@ const useChatStore = create((set, get) => ({
 
   // Initialize WebSocket connection
   initializeWebSocket: async () => {
+    console.log('🚀 Initializing WebSocket connection...');
+    
     const currentUser = getCurrentUserFromToken();
     if (!currentUser || !currentUser.username) {
-      console.error('No current user found for WebSocket connection');
+      console.error('❌ No current user found for WebSocket connection');
+      console.log('Current user data:', currentUser);
       return false;
     }
+
+    console.log('👤 Current user for WebSocket:', currentUser.username);
 
     try {
       set({ currentUser, isLoading: true });
       
       // Connect to WebSocket
+      console.log('🔌 Connecting to WebSocket...');
       await webSocketService.connect(currentUser.username);
       
       // Add message handler for incoming messages
       webSocketService.addMessageHandler('chatStore', (messageData) => {
+        console.log('📨 Chat store received message:', messageData);
         get().handleIncomingMessage(messageData);
       });
       
       set({ isConnected: true, isLoading: false });
-      console.log('WebSocket initialized successfully');
+      console.log('✅ WebSocket initialized successfully');
       return true;
     } catch (error) {
-      console.error('Failed to initialize WebSocket:', error);
+      console.error('❌ Failed to initialize WebSocket:', error);
       set({ isConnected: false, isLoading: false });
       return false;
     }
@@ -41,6 +48,7 @@ const useChatStore = create((set, get) => ({
 
   // Disconnect WebSocket
   disconnectWebSocket: () => {
+    console.log('🔌 Disconnecting WebSocket...');
     webSocketService.removeMessageHandler('chatStore');
     webSocketService.disconnect();
     set({ isConnected: false });
@@ -48,9 +56,11 @@ const useChatStore = create((set, get) => ({
 
   // Select a user to chat with (no chat history loading)
   selectUser: async (user) => {
+    console.log('👥 Selecting user for chat:', user.username);
+    
     const { currentUser } = get();
     if (!currentUser) {
-      console.error('No current user available');
+      console.error('❌ No current user available');
       return;
     }
 
@@ -63,19 +73,26 @@ const useChatStore = create((set, get) => ({
         [user.username]: state.messages[user.username] || []
       }
     }));
+    
+    console.log('✅ User selected for chat:', user.username);
   },
 
   // Send a message
   sendMessage: async (text, image = null) => {
     const { selectedUser, currentUser } = get();
     
+    console.log('📤 Attempting to send message...');
+    console.log('Selected user:', selectedUser?.username);
+    console.log('Current user:', currentUser?.username);
+    console.log('Message text:', text);
+    
     if (!selectedUser || !currentUser) {
-      console.error('No user selected or current user not available');
+      console.error('❌ No user selected or current user not available');
       return false;
     }
 
     if (!webSocketService.isConnected()) {
-      console.error('WebSocket not connected');
+      console.error('❌ WebSocket not connected');
       return false;
     }
 
@@ -91,6 +108,8 @@ const useChatStore = create((set, get) => ({
         isTemp: true // Mark as temporary until confirmed
       };
 
+      console.log('💾 Adding message to local state:', messageData);
+
       // Add message to local state immediately (optimistic update)
       set((state) => ({
         messages: {
@@ -102,6 +121,7 @@ const useChatStore = create((set, get) => ({
         }
       }));
 
+      console.log('📡 Sending via WebSocket...');
       // Send via WebSocket
       await webSocketService.sendPrivateMessage(
         currentUser.username,
@@ -109,9 +129,10 @@ const useChatStore = create((set, get) => ({
         text
       );
 
+      console.log('✅ Message sent successfully');
       return true;
     } catch (error) {
-      console.error('Failed to send message:', error);
+      console.error('❌ Failed to send message:', error);
       
       // Remove the temporary message on error
       set((state) => ({
@@ -129,15 +150,20 @@ const useChatStore = create((set, get) => ({
 
   // Handle incoming messages from WebSocket
   handleIncomingMessage: (messageData) => {
-    console.log('Handling incoming message:', messageData);
+    console.log('📨 Handling incoming message:', messageData);
     
     const { currentUser } = get();
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.error('❌ No current user to handle incoming message');
+      return;
+    }
 
     // Determine which user this message is from/to
     const otherUser = messageData.sender === currentUser.username 
       ? messageData.receiver 
       : messageData.sender;
+
+    console.log('👤 Message is from/to user:', otherUser);
 
     // Transform message to match our format
     const formattedMessage = {
@@ -147,6 +173,8 @@ const useChatStore = create((set, get) => ({
       text: messageData.message,
       createdAt: messageData.timestamp || new Date().toISOString()
     };
+
+    console.log('🔄 Formatted message:', formattedMessage);
 
     // Add message to the appropriate conversation
     set((state) => {
@@ -160,9 +188,11 @@ const useChatStore = create((set, get) => ({
       );
 
       if (messageExists) {
+        console.log('⚠️ Duplicate message detected, skipping');
         return state; // Don't add duplicate
       }
 
+      console.log('💾 Adding message to conversation with:', otherUser);
       return {
         messages: {
           ...state.messages,
