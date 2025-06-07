@@ -199,12 +199,15 @@ export const getAllFriends = async () => {
   }
 };
 
-// NEW: Get chat history between two users
+// NEW: Get chat history between two users - Updated to match your backend
 export const getChatHistory = async (user1, user2) => {
   try {
     console.log('Fetching chat history between:', user1, 'and', user2);
     const response = await api.get('/api/messages/history', {
-      params: { user1, user2 }
+      params: { 
+        sender: user1, 
+        receiver: user2 
+      }
     });
     
     console.log('Chat history response:', response.data);
@@ -231,7 +234,6 @@ export const getChatHistory = async (user1, user2) => {
       receiverId: message.receiver?.username || message.receiverId || message.receiver,
       text: message.message || message.text || message.content,
       createdAt: message.timestamp || message.createdAt || new Date().toISOString(),
-      // Add any other fields your message format needs
     }));
   } catch (error) {
     console.error('Failed to fetch chat history:', error.response?.data || error.message);
