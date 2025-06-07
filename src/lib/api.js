@@ -156,6 +156,49 @@ export const getUserById = async (userId) => {
   }
 };
 
+// Get all friends for the current user
+export const getAllFriends = async () => {
+  try {
+    console.log('Fetching friends list from backend...');
+    const response = await api.get('/friends/getAllFriends');
+    console.log('Friends response:', response.data);
+    
+    // Handle different response formats from backend
+    let friends = response.data;
+    
+    // If response.data is an object with a friends array
+    if (friends && typeof friends === 'object' && friends.friends) {
+      friends = friends.friends;
+    }
+    
+    // If response.data is an object with a data array
+    if (friends && typeof friends === 'object' && friends.data) {
+      friends = friends.data;
+    }
+    
+    // Ensure we return an array
+    if (!Array.isArray(friends)) {
+      console.warn('Friends response is not an array:', friends);
+      return [];
+    }
+    
+    // Transform backend user data to match frontend format
+    return friends.map(friend => ({
+      _id: friend.id?.toString() || friend._id,
+      fullName: friend.username || friend.fullName || 'Unknown User',
+      profilePic: friend.profilePic || '/avatar.png',
+      isOnline: friend.isOnline || false,
+      email: friend.email || '',
+      username: friend.username || friend.fullName || 'Unknown'
+    }));
+  } catch (error) {
+    console.error('Failed to fetch friends:', error.response?.data || error.message);
+    
+    // Return empty array if API fails
+    return [];
+  }
+};
+
 // Create a separate axios instance for friend requests with proper error handling
 const createFriendsApi = () => {
   const friendsApi = axios.create({
@@ -214,6 +257,23 @@ export const sendFriendRequest = async (senderUsername, receiverUsername) => {
     });
     
     console.log('Friend request response:', response.data);
+    
+    // Check if the response indicates users are already friends
+    const responseMessage = response.data;
+    if (typeof responseMessage === 'string') {
+      const lowerMessage = responseMessage.toLowerCase();
+      
+      if (lowerMessage.includes('already friends')) {
+        throw new Error('ALREADY_FRIENDS');
+      }
+      
+      if (lowerMessage.includes('already exists') || 
+          lowerMessage.includes('pending') ||
+          lowerMessage.includes('duplicate')) {
+        throw new Error('FRIEND_REQUEST_EXISTS');
+      }
+    }
+    
     return response.data;
   } catch (error) {
     console.error('Friend request error:', error.response?.data || error.message);
@@ -231,6 +291,10 @@ export const sendFriendRequest = async (senderUsername, receiverUsername) => {
     if (typeof errorMessage === 'string') {
       const lowerErrorMessage = errorMessage.toLowerCase();
       
+      if (lowerErrorMessage.includes('already friends')) {
+        throw new Error('ALREADY_FRIENDS');
+      }
+      
       if (lowerErrorMessage.includes('already') || 
           lowerErrorMessage.includes('exists') || 
           lowerErrorMessage.includes('pending') ||
@@ -241,11 +305,6 @@ export const sendFriendRequest = async (senderUsername, receiverUsername) => {
       if (lowerErrorMessage.includes('not found') || 
           lowerErrorMessage.includes('user not found')) {
         throw new Error('USER_NOT_FOUND');
-      }
-      
-      if (lowerErrorMessage.includes('already friends') || 
-          lowerErrorMessage.includes('friendship exists')) {
-        throw new Error('ALREADY_FRIENDS');
       }
     }
     

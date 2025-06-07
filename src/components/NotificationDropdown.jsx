@@ -167,6 +167,9 @@ const NotificationDropdown = () => {
       await handleMarkAsRead(notificationId);
       toast.success('Friend request accepted!');
       fetchNotifications();
+      
+      // Trigger event to refresh friends list in sidebar
+      window.dispatchEvent(new CustomEvent('friendRequestAccepted'));
     } catch (error) {
       if (error.message.includes('connect to server')) {
         toast.error('Unable to connect to server. Please check your connection and try again.');

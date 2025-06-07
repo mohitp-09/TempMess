@@ -1,7 +1,8 @@
 import { Plus, Search, Users, MessageCircle, Bell, UsersRound, X, AlignLeft } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { users, messagesByUser, chats } from "../data/mockData";
+import { getAllFriends } from "../lib/api";
 import AddUserModal from "./AddUserModal";
+import toast from "react-hot-toast";
 
 const Sidebar = ({ onSelectUser, selectedUserId }) => {
   const [showDrawer, setShowDrawer] = useState(false);
@@ -9,6 +10,8 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [friends, setFriends] = useState([]);
+  const [isLoadingFriends, setIsLoadingFriends] = useState(true);
   const drawerRef = useRef(null);
   const buttonRef = useRef(null);
 
@@ -39,8 +42,45 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
     },
   ];
 
-  const filteredUsers = users.filter(user =>
-    user.fullName.toLowerCase().includes(searchQuery.toLowerCase())
+  // Fetch friends from backend
+  const fetchFriends = async () => {
+    setIsLoadingFriends(true);
+    try {
+      const friendsList = await getAllFriends();
+      console.log('Fetched friends:', friendsList);
+      setFriends(friendsList);
+    } catch (error) {
+      console.error('Failed to fetch friends:', error);
+      toast.error('Failed to load friends list');
+      setFriends([]);
+    } finally {
+      setIsLoadingFriends(false);
+    }
+  };
+
+  // Load friends on component mount
+  useEffect(() => {
+    fetchFriends();
+  }, []);
+
+  // Listen for friend request acceptance to refresh friends list
+  useEffect(() => {
+    const handleFriendRequestAccepted = () => {
+      setTimeout(() => {
+        fetchFriends();
+      }, 1000);
+    };
+    
+    window.addEventListener('friendRequestAccepted', handleFriendRequestAccepted);
+    
+    return () => {
+      window.removeEventListener('friendRequestAccepted', handleFriendRequestAccepted);
+    };
+  }, []);
+
+  const filteredFriends = friends.filter(friend =>
+    friend.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    friend.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const toggleDrawer = () => {
@@ -58,14 +98,15 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
     }
   };
 
+  // Mock functions for last message and unread count (to be implemented later)
   const getLastMessage = (userId) => {
-    const chat = chats.find(chat => chat.user._id === userId);
-    return chat?.lastMessage || null;
+    // TODO: Implement real last message fetching
+    return null;
   };
 
   const getUnreadCount = (userId) => {
-    const chat = chats.find(chat => chat.user._id === userId);
-    return chat?.unreadCount || 0;
+    // TODO: Implement real unread count
+    return 0;
   };
 
   const formatMessageTime = (timestamp) => {
@@ -127,7 +168,7 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-base-content/40" />
                   <input
                     type="text"
-                    placeholder="Search"
+                    placeholder="Search friends"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-3 py-2 bg-base-200 rounded-full text-sm focus:outline-none"
@@ -168,34 +209,43 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
         </div>
 
         <div className="overflow-y-auto w-full py-3">
-          {filteredUsers.length > 0 ? (
-            filteredUsers.map((user) => {
-              const lastMessage = getLastMessage(user._id);
-              const unreadCount = getUnreadCount(user._id);
+          {isLoadingFriends ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin size-6 border-2 border-primary border-t-transparent rounded-full"></div>
+              <span className={`ml-2 text-sm text-base-content/60 ${!isExpanded && 'hidden'} lg:block`}>
+                Loading friends...
+              </span>
+            </div>
+          ) : filteredFriends.length > 0 ? (
+            filteredFriends.map((friend) => {
+              const lastMessage = getLastMessage(friend._id);
+              const unreadCount = getUnreadCount(friend._id);
 
               return (
                 <button
-                  key={user._id}
-                  onClick={() => handleUserSelect(user)}
+                  key={friend._id}
+                  onClick={() => handleUserSelect(friend)}
                   className={`w-full p-3 flex items-center gap-3 hover:bg-base-300 transition-colors ${
-                    selectedUserId === user._id ? "bg-base-300" : ""
+                    selectedUserId === friend._id ? "bg-base-300" : ""
                   }`}
                 >
                   <div className="relative mx-auto lg:mx-0">
                     <img
-                      src={user.profilePic}
-                      alt={user.fullName}
+                      src={friend.profilePic}
+                      alt={friend.fullName}
                       className="size-12 object-cover rounded-full"
+                      onError={(e) => {
+                        e.target.src = '/avatar.png';
+                      }}
                     />
-                    {user.isOnline && (
+                    {friend.isOnline && (
                      <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full ring-2 ring-white" />
-
                     )}
                   </div>
 
                   <div className={`${!isExpanded && 'hidden'} lg:block text-left min-w-0 flex-1`}>
                     <div className="flex items-center justify-between">
-                      <span className="font-medium truncate">{user.fullName}</span>
+                      <span className="font-medium truncate">{friend.fullName}</span>
                       {lastMessage && (
                         <span className="text-xs text-base-content/40">
                           {formatMessageTime(lastMessage.createdAt)}
@@ -204,7 +254,7 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
                       <span className="text-sm text-base-content/40 truncate max-w-[180px]">
-                        {lastMessage ? lastMessage.text : 'No messages yet'}
+                        {lastMessage ? lastMessage.text : 'Start a conversation'}
                       </span>
                       {unreadCount > 0 && (
                         <span className="flex items-center justify-center min-w-5 h-5 text-xs font-medium bg-primary text-primary-content rounded-full px-1.5">
@@ -217,7 +267,15 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
               );
             })
           ) : (
-            <div className="text-center text-base-content/40 py-4">No contacts found</div>
+            <div className="text-center text-base-content/40 py-8 px-4">
+              <Users className="size-12 mx-auto mb-3 opacity-40" />
+              <p className={`text-sm font-medium ${!isExpanded && 'hidden'} lg:block`}>
+                {searchQuery ? 'No friends found' : 'No friends yet'}
+              </p>
+              <p className={`text-xs mt-1 opacity-75 ${!isExpanded && 'hidden'} lg:block`}>
+                {searchQuery ? 'Try a different search term' : 'Add friends to start chatting'}
+              </p>
+            </div>
           )}
         </div>
 
