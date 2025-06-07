@@ -156,7 +156,7 @@ export const getUserById = async (userId) => {
   }
 };
 
-// Get all friends for the current user
+// Get all friends for the current user - FIXED ENDPOINT
 export const getAllFriends = async () => {
   try {
     console.log('Fetching friends list from backend...');
@@ -186,8 +186,8 @@ export const getAllFriends = async () => {
     return friends.map(friend => ({
       _id: friend.id?.toString() || friend._id,
       fullName: friend.username || friend.fullName || 'Unknown User',
-      profilePic: friend.profilePic || '/avatar.png',
-      isOnline: friend.isOnline || false,
+      profilePic: friend.profilePicture || friend.profilePic || '/avatar.png',
+      isOnline: friend.onlineStatus || friend.isOnline || false,
       email: friend.email || '',
       username: friend.username || friend.fullName || 'Unknown'
     }));
