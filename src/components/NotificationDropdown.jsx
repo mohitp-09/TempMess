@@ -98,50 +98,78 @@ const NotificationDropdown = () => {
     setIsLoading(true);
     try {
       const data = await getUnreadNotifications();
-      console.log('Fetched notifications:', data);
+      console.log('Raw notifications from API:', data);
       
       const notificationsArray = Array.isArray(data) ? data : [];
+      console.log('Notifications array:', notificationsArray);
       
       // Process notifications to get sender details
       const notificationsWithUserDetails = await Promise.all(
         notificationsArray.map(async (notification) => {
           console.log('Processing notification:', notification);
           
-          // For friend requests, use reference_id to get sender details
+          // For friend requests, the reference_id should be the friend_requests.id
+          // We need to get the sender_id from the friend_requests table
           if (notification.type === 'FRIEND_REQUEST' || notification.type === 'friend_request') {
-            const senderId = notification.reference_id; // reference_id points to sender_id in friend_requests
+            const friendRequestId = notification.reference_id; // This is the friend_requests.id
             
-            if (senderId) {
+            console.log(`Friend request notification - ID: ${notification.id}, reference_id (friend_request_id): ${friendRequestId}`);
+            
+            // Based on your database structure:
+            // - notification.reference_id = friend_requests.id
+            // - We need to get sender details using the sender_id from friend_requests
+            // - But since your backend should provide sender details, let's use what we have
+            
+            // For now, let's assume the backend provides sender info in the notification
+            // If not, we'll need to make an additional API call to get friend_request details
+            
+            let senderDetails = null;
+            let senderId = null;
+            
+            // Try to get sender ID from notification data
+            if (notification.sender_id) {
+              senderId = notification.sender_id;
+            } else if (notification.senderDetails) {
+              senderDetails = notification.senderDetails;
+            } else {
+              // If no sender info in notification, we might need to fetch friend_request details
+              console.log('No sender info in notification, using reference_id as fallback');
+              senderId = notification.reference_id; // Fallback - might not be correct
+            }
+            
+            if (senderId && !senderDetails) {
               try {
-                console.log(`Fetching sender details for notification ${notification.id}, sender ID: ${senderId}`);
-                const senderDetails = await fetchUserDetails(senderId);
-                
-                return {
-                  ...notification,
-                  senderDetails: senderDetails,
-                  // Store the friend request ID for accept/reject actions
-                  friendRequestId: notification.reference_id
-                };
+                console.log(`Fetching sender details for sender ID: ${senderId}`);
+                senderDetails = await fetchUserDetails(senderId);
               } catch (error) {
                 console.error('Failed to fetch sender details:', error);
-                return {
-                  ...notification,
-                  senderDetails: {
-                    id: senderId,
-                    username: 'Unknown User',
-                    email: '',
-                    profilePic: '/avatar.png'
-                  }
+                senderDetails = {
+                  id: senderId,
+                  username: 'Unknown User',
+                  email: '',
+                  profilePic: '/avatar.png'
                 };
               }
             }
+            
+            const processedNotification = {
+              ...notification,
+              senderDetails: senderDetails,
+              // The friend request ID for accept/reject actions
+              friendRequestId: friendRequestId, // This should be the friend_requests.id
+              // Store both for debugging
+              originalReferenceId: notification.reference_id
+            };
+            
+            console.log('Processed notification:', processedNotification);
+            return processedNotification;
           }
           
           return notification;
         })
       );
       
-      console.log('Notifications with user details:', notificationsWithUserDetails);
+      console.log('Final notifications with user details:', notificationsWithUserDetails);
       setNotifications(notificationsWithUserDetails);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
@@ -168,8 +196,18 @@ const NotificationDropdown = () => {
   };
 
   const handleAcceptFriendRequest = async (requestId, notificationId) => {
+    console.log(`Attempting to accept friend request - requestId: ${requestId}, notificationId: ${notificationId}`);
+    
+    // Validate requestId
+    if (!requestId || requestId === 'undefined' || requestId === undefined) {
+      console.error('Invalid request ID:', requestId);
+      toast.error('Invalid request ID. Please refresh and try again.');
+      return;
+    }
+
     // Prevent multiple clicks
     if (processingRequests.has(requestId)) {
+      console.log('Request already being processed:', requestId);
       return;
     }
 
@@ -178,11 +216,6 @@ const NotificationDropdown = () => {
     try {
       console.log(`Accepting friend request ID: ${requestId}, notification ID: ${notificationId}`);
       
-      // Validate requestId
-      if (!requestId) {
-        throw new Error('Invalid request ID');
-      }
-
       await acceptFriendRequest(requestId);
       await handleMarkAsRead(notificationId);
       toast.success('Friend request accepted!');
@@ -197,6 +230,8 @@ const NotificationDropdown = () => {
         toast.error('Unable to connect to server. Please check your connection and try again.');
       } else if (error.message.includes('timeout')) {
         toast.error('Request timed out. Please try again.');
+      } else if (error.message.includes('Invalid request ID')) {
+        toast.error('Invalid request. Please refresh the page and try again.');
       } else {
         toast.error(error.message || 'Failed to accept friend request');
       }
@@ -210,8 +245,18 @@ const NotificationDropdown = () => {
   };
 
   const handleRejectFriendRequest = async (requestId, notificationId) => {
+    console.log(`Attempting to reject friend request - requestId: ${requestId}, notificationId: ${notificationId}`);
+    
+    // Validate requestId
+    if (!requestId || requestId === 'undefined' || requestId === undefined) {
+      console.error('Invalid request ID:', requestId);
+      toast.error('Invalid request ID. Please refresh and try again.');
+      return;
+    }
+
     // Prevent multiple clicks
     if (processingRequests.has(requestId)) {
+      console.log('Request already being processed:', requestId);
       return;
     }
 
@@ -220,11 +265,6 @@ const NotificationDropdown = () => {
     try {
       console.log(`Rejecting friend request ID: ${requestId}, notification ID: ${notificationId}`);
       
-      // Validate requestId
-      if (!requestId) {
-        throw new Error('Invalid request ID');
-      }
-
       await rejectFriendRequest(requestId);
       await handleMarkAsRead(notificationId);
       toast.success('Friend request rejected');
@@ -239,6 +279,8 @@ const NotificationDropdown = () => {
         toast.error('Unable to connect to server. Please check your connection and try again.');
       } else if (error.message.includes('timeout')) {
         toast.error('Request timed out. Please try again.');
+      } else if (error.message.includes('Invalid request ID')) {
+        toast.error('Invalid request. Please refresh the page and try again.');
       } else {
         toast.error(error.message || 'Failed to reject friend request');
       }
@@ -349,7 +391,10 @@ const NotificationDropdown = () => {
             ) : (
               <div className="divide-y divide-base-300">
                 {notifications.map((notification) => {
-                  const isProcessing = processingRequests.has(notification.friendRequestId || notification.reference_id);
+                  const requestId = notification.friendRequestId || notification.reference_id;
+                  const isProcessing = processingRequests.has(requestId);
+                  
+                  console.log(`Rendering notification ${notification.id} with requestId: ${requestId}`);
                   
                   return (
                     <div key={notification.id} className="p-3 hover:bg-base-200/50 transition-colors">
@@ -392,15 +437,19 @@ const NotificationDropdown = () => {
                             {formatTimeAgo(notification.createdAt || notification.timestamp)}
                           </p>
                           
+                          {/* Debug info - remove in production */}
+                          {process.env.NODE_ENV === 'development' && (
+                            <p className="text-xs text-red-500 mt-1">
+                              Debug: requestId={requestId}, notificationId={notification.id}
+                            </p>
+                          )}
+                          
                           {/* Friend request actions */}
                           {(notification.type === 'FRIEND_REQUEST' || notification.type === 'friend_request') && (
                             <div className="flex gap-2 mt-2">
                               <button
-                                onClick={() => handleAcceptFriendRequest(
-                                  notification.friendRequestId || notification.reference_id, 
-                                  notification.id
-                                )}
-                                disabled={isProcessing}
+                                onClick={() => handleAcceptFriendRequest(requestId, notification.id)}
+                                disabled={isProcessing || !requestId}
                                 className="flex items-center gap-1 px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 {isProcessing ? (
@@ -411,11 +460,8 @@ const NotificationDropdown = () => {
                                 Accept
                               </button>
                               <button
-                                onClick={() => handleRejectFriendRequest(
-                                  notification.friendRequestId || notification.reference_id, 
-                                  notification.id
-                                )}
-                                disabled={isProcessing}
+                                onClick={() => handleRejectFriendRequest(requestId, notification.id)}
+                                disabled={isProcessing || !requestId}
                                 className="flex items-center gap-1 px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 {isProcessing ? (
