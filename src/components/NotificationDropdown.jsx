@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, X, UserPlus, RefreshCw } from 'lucide-react';
+import { Bell, Check, X, UserPlus, RefreshCw, AlertCircle } from 'lucide-react';
 import { getUnreadNotifications, markNotificationAsRead, acceptFriendRequest, rejectFriendRequest, getUserById } from '../lib/api';
 import toast from 'react-hot-toast';
 
@@ -8,6 +8,7 @@ const NotificationDropdown = () => {
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [userCache, setUserCache] = useState({}); // Cache for user details
+  const [processingRequests, setProcessingRequests] = useState(new Set()); // Track processing requests
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -118,8 +119,8 @@ const NotificationDropdown = () => {
                 return {
                   ...notification,
                   senderDetails: senderDetails,
-                  // Also store the friend request ID for accept/reject actions
-                  friendRequestId: notification.reference_id // This might be the friend_request.id, adjust if needed
+                  // Store the friend request ID for accept/reject actions
+                  friendRequestId: notification.reference_id
                 };
               } catch (error) {
                 console.error('Failed to fetch sender details:', error);
@@ -167,30 +168,86 @@ const NotificationDropdown = () => {
   };
 
   const handleAcceptFriendRequest = async (requestId, notificationId) => {
+    // Prevent multiple clicks
+    if (processingRequests.has(requestId)) {
+      return;
+    }
+
+    setProcessingRequests(prev => new Set(prev).add(requestId));
+
     try {
       console.log(`Accepting friend request ID: ${requestId}, notification ID: ${notificationId}`);
+      
+      // Validate requestId
+      if (!requestId) {
+        throw new Error('Invalid request ID');
+      }
+
       await acceptFriendRequest(requestId);
       await handleMarkAsRead(notificationId);
       toast.success('Friend request accepted!');
+      
       // Refresh notifications to get updated list
       fetchNotifications();
     } catch (error) {
       console.error('Failed to accept friend request:', error);
-      toast.error('Failed to accept friend request');
+      
+      // Show user-friendly error message
+      if (error.message.includes('connect to server')) {
+        toast.error('Unable to connect to server. Please check your connection and try again.');
+      } else if (error.message.includes('timeout')) {
+        toast.error('Request timed out. Please try again.');
+      } else {
+        toast.error(error.message || 'Failed to accept friend request');
+      }
+    } finally {
+      setProcessingRequests(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(requestId);
+        return newSet;
+      });
     }
   };
 
   const handleRejectFriendRequest = async (requestId, notificationId) => {
+    // Prevent multiple clicks
+    if (processingRequests.has(requestId)) {
+      return;
+    }
+
+    setProcessingRequests(prev => new Set(prev).add(requestId));
+
     try {
       console.log(`Rejecting friend request ID: ${requestId}, notification ID: ${notificationId}`);
+      
+      // Validate requestId
+      if (!requestId) {
+        throw new Error('Invalid request ID');
+      }
+
       await rejectFriendRequest(requestId);
       await handleMarkAsRead(notificationId);
       toast.success('Friend request rejected');
+      
       // Refresh notifications to get updated list
       fetchNotifications();
     } catch (error) {
       console.error('Failed to reject friend request:', error);
-      toast.error('Failed to reject friend request');
+      
+      // Show user-friendly error message
+      if (error.message.includes('connect to server')) {
+        toast.error('Unable to connect to server. Please check your connection and try again.');
+      } else if (error.message.includes('timeout')) {
+        toast.error('Request timed out. Please try again.');
+      } else {
+        toast.error(error.message || 'Failed to reject friend request');
+      }
+    } finally {
+      setProcessingRequests(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(requestId);
+        return newSet;
+      });
     }
   };
 
@@ -291,86 +348,100 @@ const NotificationDropdown = () => {
               </div>
             ) : (
               <div className="divide-y divide-base-300">
-                {notifications.map((notification) => (
-                  <div key={notification.id} className="p-3 hover:bg-base-200/50 transition-colors">
-                    <div className="flex items-start gap-3">
-                      {/* User Avatar */}
-                      <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        {notification.senderDetails?.profilePic ? (
-                          <img 
-                            src={getUserAvatar(notification)} 
-                            alt={notification.senderDetails?.username || 'User'} 
-                            className="size-10 rounded-full object-cover"
-                            onError={(e) => {
-                              // Fallback to initial if image fails to load
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
-                            }}
-                          />
-                        ) : null}
-                        <div 
-                          className={`size-10 rounded-full bg-primary/10 flex items-center justify-center ${
-                            notification.senderDetails?.profilePic ? 'hidden' : 'flex'
-                          }`}
-                        >
-                          <span className="text-primary font-medium text-sm">
-                            {getUserInitial(notification)}
-                          </span>
+                {notifications.map((notification) => {
+                  const isProcessing = processingRequests.has(notification.friendRequestId || notification.reference_id);
+                  
+                  return (
+                    <div key={notification.id} className="p-3 hover:bg-base-200/50 transition-colors">
+                      <div className="flex items-start gap-3">
+                        {/* User Avatar */}
+                        <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {notification.senderDetails?.profilePic ? (
+                            <img 
+                              src={getUserAvatar(notification)} 
+                              alt={notification.senderDetails?.username || 'User'} 
+                              className="size-10 rounded-full object-cover"
+                              onError={(e) => {
+                                // Fallback to initial if image fails to load
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <div 
+                            className={`size-10 rounded-full bg-primary/10 flex items-center justify-center ${
+                              notification.senderDetails?.profilePic ? 'hidden' : 'flex'
+                            }`}
+                          >
+                            <span className="text-primary font-medium text-sm">
+                              {getUserInitial(notification)}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-base-content">
+                            {getNotificationMessage(notification)}
+                          </p>
+                          {notification.senderDetails?.email && (
+                            <p className="text-xs text-base-content/50 mt-0.5">
+                              {notification.senderDetails.email}
+                            </p>
+                          )}
+                          <p className="text-xs text-base-content/60 mt-1">
+                            {formatTimeAgo(notification.createdAt || notification.timestamp)}
+                          </p>
+                          
+                          {/* Friend request actions */}
+                          {(notification.type === 'FRIEND_REQUEST' || notification.type === 'friend_request') && (
+                            <div className="flex gap-2 mt-2">
+                              <button
+                                onClick={() => handleAcceptFriendRequest(
+                                  notification.friendRequestId || notification.reference_id, 
+                                  notification.id
+                                )}
+                                disabled={isProcessing}
+                                className="flex items-center gap-1 px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {isProcessing ? (
+                                  <div className="size-3 border border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <Check className="size-3" />
+                                )}
+                                Accept
+                              </button>
+                              <button
+                                onClick={() => handleRejectFriendRequest(
+                                  notification.friendRequestId || notification.reference_id, 
+                                  notification.id
+                                )}
+                                disabled={isProcessing}
+                                className="flex items-center gap-1 px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {isProcessing ? (
+                                  <div className="size-3 border border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <X className="size-3" />
+                                )}
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                          
+                          {/* General notification mark as read */}
+                          {notification.type !== 'FRIEND_REQUEST' && notification.type !== 'friend_request' && (
+                            <button
+                              onClick={() => handleMarkAsRead(notification.id)}
+                              className="text-xs text-primary hover:underline mt-1"
+                            >
+                              Mark as read
+                            </button>
+                          )}
                         </div>
                       </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-base-content">
-                          {getNotificationMessage(notification)}
-                        </p>
-                        {notification.senderDetails?.email && (
-                          <p className="text-xs text-base-content/50 mt-0.5">
-                            {notification.senderDetails.email}
-                          </p>
-                        )}
-                        <p className="text-xs text-base-content/60 mt-1">
-                          {formatTimeAgo(notification.createdAt || notification.timestamp)}
-                        </p>
-                        
-                        {/* Friend request actions */}
-                        {(notification.type === 'FRIEND_REQUEST' || notification.type === 'friend_request') && (
-                          <div className="flex gap-2 mt-2">
-                            <button
-                              onClick={() => handleAcceptFriendRequest(
-                                notification.relatedId || notification.friendRequestId || notification.reference_id, 
-                                notification.id
-                              )}
-                              className="flex items-center gap-1 px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors"
-                            >
-                              <Check className="size-3" />
-                              Accept
-                            </button>
-                            <button
-                              onClick={() => handleRejectFriendRequest(
-                                notification.relatedId || notification.friendRequestId || notification.reference_id, 
-                                notification.id
-                              )}
-                              className="flex items-center gap-1 px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors"
-                            >
-                              <X className="size-3" />
-                              Reject
-                            </button>
-                          </div>
-                        )}
-                        
-                        {/* General notification mark as read */}
-                        {notification.type !== 'FRIEND_REQUEST' && notification.type !== 'friend_request' && (
-                          <button
-                            onClick={() => handleMarkAsRead(notification.id)}
-                            className="text-xs text-primary hover:underline mt-1"
-                          >
-                            Mark as read
-                          </button>
-                        )}
-                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

@@ -128,31 +128,56 @@ export const getUserById = async (userId) => {
   }
 };
 
-// Friend requests - Create a separate axios instance for friend requests to handle the different base URL
-const friendsApi = axios.create({
-  baseURL: 'http://localhost:8080', // No /api prefix for friends endpoints
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: true,
-});
+// Create a separate axios instance for friend requests with proper error handling
+const createFriendsApi = () => {
+  const friendsApi = axios.create({
+    baseURL: 'http://localhost:8080', // No /api prefix for friends endpoints
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    withCredentials: true,
+    timeout: 10000, // 10 second timeout
+  });
 
-// Add auth interceptor for friends API
-friendsApi.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  // Add auth interceptor for friends API
+  friendsApi.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
+
+  // Add response interceptor for better error handling
+  friendsApi.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      console.error('Friends API Error:', error);
+      
+      // Handle different types of errors
+      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+        throw new Error('Unable to connect to server. Please ensure the backend is running on http://localhost:8080');
+      }
+      
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('Request timeout. Please try again.');
+      }
+      
+      return Promise.reject(error);
     }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+  );
+
+  return friendsApi;
+};
 
 export const sendFriendRequest = async (senderUsername, receiverUsername) => {
   try {
     console.log('Sending friend request:', { senderUsername, receiverUsername });
     
+    const friendsApi = createFriendsApi();
     const response = await friendsApi.post('/friends/request', null, {
       params: { 
         senderUsername: senderUsername, 
@@ -205,8 +230,14 @@ export const acceptFriendRequest = async (requestId) => {
   try {
     console.log('Accepting friend request with ID:', requestId);
     
+    // Validate requestId
+    if (!requestId) {
+      throw new Error('Invalid request ID');
+    }
+    
+    const friendsApi = createFriendsApi();
     const response = await friendsApi.post('/friends/accept', null, {
-      params: { requestId }
+      params: { requestId: requestId.toString() }
     });
     
     console.log('Accept friend request response:', response.data);
@@ -220,6 +251,11 @@ export const acceptFriendRequest = async (requestId) => {
       throw new Error('Unable to connect to server. Please check if the backend is running.');
     }
     
+    // Handle timeout
+    if (error.code === 'ECONNABORTED') {
+      throw new Error('Request timeout. Please try again.');
+    }
+    
     // Handle specific error messages
     const errorMessage = error.response?.data?.message || error.response?.data || error.message;
     throw new Error(errorMessage || 'Failed to accept friend request');
@@ -230,8 +266,14 @@ export const rejectFriendRequest = async (requestId) => {
   try {
     console.log('Rejecting friend request with ID:', requestId);
     
+    // Validate requestId
+    if (!requestId) {
+      throw new Error('Invalid request ID');
+    }
+    
+    const friendsApi = createFriendsApi();
     const response = await friendsApi.post('/friends/reject', null, {
-      params: { requestId }
+      params: { requestId: requestId.toString() }
     });
     
     console.log('Reject friend request response:', response.data);
@@ -243,6 +285,11 @@ export const rejectFriendRequest = async (requestId) => {
     // Handle CORS and network errors
     if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
       throw new Error('Unable to connect to server. Please check if the backend is running.');
+    }
+    
+    // Handle timeout
+    if (error.code === 'ECONNABORTED') {
+      throw new Error('Request timeout. Please try again.');
     }
     
     // Handle specific error messages
