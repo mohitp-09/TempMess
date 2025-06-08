@@ -4,7 +4,7 @@ import MessageInput from "./MessageInput";
 import { formatMessageTime, getDateLabel } from "../lib/utils";
 import { useChatStore } from "../store/useChatStore";
 import { getCurrentUserFromToken } from "../lib/jwtUtils";
-import { MessageSquare, Sparkles } from "lucide-react";
+import { MessageSquare, Sparkles, Loader2 } from "lucide-react";
 
 const ChatContainer = ({ selectedUser, onClose }) => {
   const messageEndRef = useRef(null);
@@ -12,7 +12,8 @@ const ChatContainer = ({ selectedUser, onClose }) => {
     getMessagesForUser, 
     sendMessage, 
     isLoading,
-    currentUser 
+    currentUser,
+    isLoadingOldMessages 
   } = useChatStore();
   
   const [messages, setMessages] = useState([]);
@@ -59,12 +60,21 @@ const ChatContainer = ({ selectedUser, onClose }) => {
     return null;
   }
 
+  const isLoadingMessages = isLoadingOldMessages(selectedUser.username);
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-base-100">
       <ChatHeader user={selectedUser} onClose={onClose} />
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-base-100 to-base-50">
-        {isLoading && messages.length === 0 ? (
+        {isLoadingMessages ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="flex items-center gap-3 bg-base-200/50 backdrop-blur-sm rounded-full px-6 py-3">
+              <Loader2 className="animate-spin size-5 text-primary" />
+              <span className="text-base-content/70 text-sm font-medium">Loading chat history...</span>
+            </div>
+          </div>
+        ) : isLoading && messages.length === 0 ? (
           <div className="flex items-center justify-center py-8">
             <div className="flex items-center gap-3 bg-base-200/50 backdrop-blur-sm rounded-full px-6 py-3">
               <div className="animate-spin size-5 border-2 border-primary border-t-transparent rounded-full"></div>
@@ -158,6 +168,12 @@ const ChatContainer = ({ selectedUser, onClose }) => {
                       <span className="text-xs text-base-content/40 ml-2 flex items-center gap-1">
                         <div className="size-2 bg-orange-400 rounded-full animate-pulse"></div>
                         Sending...
+                      </span>
+                    )}
+                    {message.isOld && (
+                      <span className="text-xs text-base-content/40 ml-2 flex items-center gap-1">
+                        <div className="size-2 bg-blue-400 rounded-full"></div>
+                        History
                       </span>
                     )}
                   </div>
