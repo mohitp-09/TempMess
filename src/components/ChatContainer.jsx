@@ -4,7 +4,7 @@ import MessageInput from "./MessageInput";
 import { formatMessageTime, getDateLabel } from "../lib/utils";
 import { useChatStore } from "../store/useChatStore";
 import { getCurrentUserFromToken } from "../lib/jwtUtils";
-import { MessageSquare, Sparkles, Loader2, Check } from "lucide-react";
+import { MessageSquare, Sparkles, Loader2, Check, CheckCheck } from "lucide-react";
 
 const ChatContainer = ({ selectedUser, onClose }) => {
   const messageEndRef = useRef(null);
@@ -72,34 +72,50 @@ const ChatContainer = ({ selectedUser, onClose }) => {
     return isSameSender && isWithinTimeLimit;
   };
 
-  // Function to get message status icon
-  const getMessageStatusIcon = (message, isOwnMessage) => {
+  // Function to get message status with proper icons
+  const getMessageStatus = (message, isOwnMessage) => {
     if (!isOwnMessage) return null;
     
     if (message.isTemp) {
-      return (
-        <div className="flex items-center gap-1 ml-2">
-          <div className="size-1 bg-white/60 rounded-full animate-pulse"></div>
-        </div>
-      );
+      return {
+        icon: null,
+        text: "Sending...",
+        className: "text-white/60 animate-pulse"
+      };
     }
     
     if (message.isOld) {
-      return (
-        <div className="flex items-center gap-1 ml-2">
-          <Check className="size-3 text-white/70" />
-          <Check className="size-3 text-white/70 -ml-1.5" />
-        </div>
-      );
+      // For old messages, assume they were delivered
+      return {
+        icon: <CheckCheck className="size-3" />,
+        text: "Delivered",
+        className: "text-white/70"
+      };
     }
     
-    // For regular sent messages - double tick
-    return (
-      <div className="flex items-center gap-1 ml-2">
-        <Check className="size-3 text-white/80" />
-        <Check className="size-3 text-white/80 -ml-1.5" />
-      </div>
-    );
+    // For new messages, we'll simulate different states
+    // In a real app, you'd get this from your backend
+    const messageAge = Date.now() - new Date(message.createdAt).getTime();
+    
+    if (messageAge < 5000) { // Less than 5 seconds - just sent
+      return {
+        icon: <Check className="size-3" />,
+        text: "Sent",
+        className: "text-white/70"
+      };
+    } else if (messageAge < 30000) { // Less than 30 seconds - delivered
+      return {
+        icon: <CheckCheck className="size-3" />,
+        text: "Delivered",
+        className: "text-white/70"
+      };
+    } else { // Older - seen
+      return {
+        icon: <CheckCheck className="size-3" />,
+        text: "Seen",
+        className: "text-blue-400" // Blue ticks for seen messages
+      };
+    }
   };
 
   return (
@@ -172,6 +188,8 @@ const ChatContainer = ({ selectedUser, onClose }) => {
             const isOwnMessage = message.senderId === authUser?.username;
             const isConsecutive = isConsecutiveMessage(message, prevMessage);
             const isLastInGroup = !nextMessage || !isConsecutiveMessage(nextMessage, message);
+
+            const messageStatus = getMessageStatus(message, isOwnMessage);
 
             return (
               <div key={message._id}>
@@ -251,16 +269,29 @@ const ChatContainer = ({ selectedUser, onClose }) => {
                             <p className="leading-relaxed flex-1">{message.text}</p>
                             
                             {/* Time and status in bottom right */}
-                            <div className="flex items-center text-xs opacity-70 ml-2 mt-1 flex-shrink-0">
-                              <span className="text-[11px]">
+                            <div className="flex items-center gap-1 text-xs flex-shrink-0 ml-2 mt-1">
+                              <span className="text-[11px] opacity-70">
                                 {formatMessageTime(message.createdAt)}
                               </span>
-                              {getMessageStatusIcon(message, isOwnMessage)}
+                              
+                              {/* Status indicator for own messages */}
+                              {messageStatus && (
+                                <div className={`flex items-center ${messageStatus.className}`}>
+                                  {messageStatus.icon}
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
                       </div>
                     </div>
+
+                    {/* Status text below message for own messages */}
+                    {messageStatus && isOwnMessage && (
+                      <div className="text-xs text-base-content/50 mt-1 text-right">
+                        {messageStatus.text}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
