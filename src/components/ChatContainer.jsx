@@ -63,7 +63,7 @@ const ChatContainer = ({ selectedUser, onClose }) => {
 
   // Function to check if messages are consecutive (same sender, within 2 minutes)
   const isConsecutiveMessage = (currentMsg, prevMsg) => {
-    if (!prevMsg) return false;
+    if (!prevMsg || !currentMsg) return false;
     
     const isSameSender = currentMsg.senderId === prevMsg.senderId;
     const timeDiff = new Date(currentMsg.createdAt) - new Date(prevMsg.createdAt);
@@ -171,7 +171,7 @@ const ChatContainer = ({ selectedUser, onClose }) => {
 
             const isOwnMessage = message.senderId === authUser?.username;
             const isConsecutive = isConsecutiveMessage(message, prevMessage);
-            const isLastInGroup = !isConsecutiveMessage(nextMessage, message);
+            const isLastInGroup = !nextMessage || !isConsecutiveMessage(nextMessage, message);
 
             return (
               <div key={message._id}>
