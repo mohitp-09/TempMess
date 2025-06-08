@@ -62,6 +62,34 @@ const ChatContainer = ({ selectedUser, onClose }) => {
 
   const isLoadingMessages = isLoadingOldMessages(selectedUser.username);
 
+  // Function to get message status text
+  const getMessageStatus = (message, isOwnMessage) => {
+    if (!isOwnMessage) return null;
+    
+    if (message.isTemp) {
+      return (
+        <div className="text-xs text-orange-500/80 mt-1 animate-pulse font-medium">
+          Sending...
+        </div>
+      );
+    }
+    
+    if (message.isOld) {
+      return (
+        <div className="text-xs text-blue-500/70 mt-1 font-medium">
+          History
+        </div>
+      );
+    }
+    
+    // For regular sent messages
+    return (
+      <div className="text-xs text-green-600/80 mt-1 font-medium">
+        Sent
+      </div>
+    );
+  };
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-base-100">
       <ChatHeader user={selectedUser} onClose={onClose} />
@@ -160,23 +188,13 @@ const ChatContainer = ({ selectedUser, onClose }) => {
                       />
                     </div>
                   </div>
+                  
                   <div className="chat-header mb-1">
                     <time className="text-xs text-base-content/50 ml-1 font-medium">
                       {formatMessageTime(message.createdAt)}
                     </time>
-                    {message.isTemp && (
-                      <span className="text-xs text-base-content/40 ml-2 flex items-center gap-1">
-                        <div className="size-2 bg-orange-400 rounded-full animate-pulse"></div>
-                        Sending...
-                      </span>
-                    )}
-                    {message.isOld && (
-                      <span className="text-xs text-base-content/40 ml-2 flex items-center gap-1">
-                        <div className="size-2 bg-blue-400 rounded-full"></div>
-                        History
-                      </span>
-                    )}
                   </div>
+                  
                   <div
                     className={`chat-bubble shadow-md ${
                       isOwnMessage
@@ -192,15 +210,11 @@ const ChatContainer = ({ selectedUser, onClose }) => {
                       />
                     )}
                     {message.text && <p className="leading-relaxed">{message.text}</p>}
-                    
-                    {/* Message status indicator for sent messages */}
-                    {isOwnMessage && !message.isTemp && (
-                      <div className="absolute -bottom-1 -right-1 size-4 bg-green-500 rounded-full flex items-center justify-center">
-                        <svg className="size-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    )}
+                  </div>
+
+                  {/* Message Status Microcopy */}
+                  <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mt-1`}>
+                    {getMessageStatus(message, isOwnMessage)}
                   </div>
                 </div>
               </div>
