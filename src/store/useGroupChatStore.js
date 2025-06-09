@@ -33,8 +33,12 @@ const useGroupChatStore = create((set, get) => ({
       set({ isConnected: true, isLoading: false });
       console.log('✅ Group WebSocket ready');
       
-      // Load user's groups
-      await get().loadUserGroups();
+      // Load user's groups - TEMPORARILY DISABLED TO AVOID OAUTH REDIRECT
+      try {
+        await get().loadUserGroups();
+      } catch (error) {
+        console.warn('⚠️ Failed to load groups, continuing without them:', error.message);
+      }
       
       return true;
     } catch (error) {
@@ -51,23 +55,31 @@ const useGroupChatStore = create((set, get) => ({
     set({ isConnected: false });
   },
 
-  // Load user's groups
+  // Load user's groups - WITH ERROR HANDLING FOR OAUTH REDIRECT
   loadUserGroups: async () => {
     try {
       console.log('🔄 Loading user groups...');
       const userGroups = await getUserGroups();
       console.log('📥 Loaded groups:', userGroups);
       
-      set({ groups: userGroups });
+      // Ensure userGroups is an array
+      const groupsArray = Array.isArray(userGroups) ? userGroups : [];
+      
+      set({ groups: groupsArray });
       
       // Subscribe to all groups
-      userGroups.forEach(group => {
-        groupWebSocketService.subscribeToGroup(group.id);
+      groupsArray.forEach(group => {
+        if (group.id) {
+          groupWebSocketService.subscribeToGroup(group.id);
+        }
       });
       
-      return userGroups;
+      return groupsArray;
     } catch (error) {
       console.error('❌ Failed to load user groups:', error);
+      
+      // Set empty array on error
+      set({ groups: [] });
       return [];
     }
   },
@@ -95,7 +107,7 @@ const useGroupChatStore = create((set, get) => ({
       console.log('📥 Loaded old group messages:', oldMessages.length);
       
       // Transform and sort messages by timestamp (oldest first)
-      const transformedMessages = oldMessages.map((msg, index) => ({
+      const transformedMessages = Array.isArray(oldMessages) ? oldMessages.map((msg, index) => ({
         _id: `group-old-${groupId}-${index}-${Date.now()}`,
         senderId: msg.sender || 'System',
         senderName: msg.senderName || msg.sender,
@@ -104,7 +116,7 @@ const useGroupChatStore = create((set, get) => ({
         createdAt: msg.timestamp || new Date().toISOString(),
         isOld: true,
         groupId: groupId
-      }));
+      })) : [];
 
       const sortedMessages = transformedMessages.sort((a, b) => 
         new Date(a.createdAt) - new Date(b.createdAt)
@@ -141,7 +153,9 @@ const useGroupChatStore = create((set, get) => ({
     set({ selectedGroup: group });
     
     // Subscribe to this group if not already subscribed
-    groupWebSocketService.subscribeToGroup(group.id);
+    if (group.id) {
+      groupWebSocketService.subscribeToGroup(group.id);
+    }
     
     // Check if we already have messages for this group
     const { groupMessages } = get();
