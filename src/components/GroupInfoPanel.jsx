@@ -3,19 +3,8 @@ import {
   X, 
   Users, 
   Calendar, 
-  Star, 
-  Bell, 
-  BellOff, 
-  Shield, 
-  FileText, 
-  Image, 
-  Link, 
-  Download,
-  Search,
-  Heart,
   LogOut,
   AlertTriangle,
-  ChevronRight,
   MoreVertical,
   Camera,
   Edit3
@@ -24,7 +13,6 @@ import { useGroupChatStore } from '../store/useGroupChatStore';
 import { getCurrentUserFromToken } from '../lib/jwtUtils';
 
 const GroupInfoPanel = ({ group, isOpen, onClose }) => {
-  const [isMuted, setIsMuted] = useState(false);
   const [showAllMembers, setShowAllMembers] = useState(false);
   const { getGroupMembers } = useGroupChatStore();
   const [members, setMembers] = useState([]);
@@ -41,12 +29,6 @@ const GroupInfoPanel = ({ group, isOpen, onClose }) => {
     if (window.confirm('Are you sure you want to exit this group?')) {
       console.log('Exiting group:', group?.name);
       onClose();
-    }
-  };
-
-  const handleReportGroup = () => {
-    if (window.confirm('Report this group?')) {
-      console.log('Reporting group:', group?.name);
     }
   };
 
@@ -74,25 +56,8 @@ const GroupInfoPanel = ({ group, isOpen, onClose }) => {
     return member.profilePic || member.profilePicture || null;
   };
 
-  // Safe member names for description
-  const getAllMemberNames = () => {
-    if (!Array.isArray(members) || members.length === 0) {
-      return 'No members';
-    }
-    
-    return members
-      .map(member => getMemberName(member))
-      .filter(name => name && name !== 'Unknown User')
-      .join(', ');
-  };
-
   const visibleMembers = showAllMembers ? members : members.slice(0, 6);
   const remainingCount = Math.max(0, members.length - 6);
-
-  // Mock data for media, links, and docs
-  const mediaCount = 146;
-  const linksCount = 23;
-  const docsCount = 8;
 
   if (!isOpen) return null;
 
@@ -143,11 +108,6 @@ const GroupInfoPanel = ({ group, isOpen, onClose }) => {
                     <Edit3 className="size-4 text-base-content/60" />
                   </button>
                 </div>
-                
-                {/* Member Names */}
-                <p className="text-base-content/70 text-sm leading-relaxed max-w-md">
-                  {getAllMemberNames()}
-                </p>
               </div>
 
               {/* Group Stats */}
@@ -162,104 +122,14 @@ const GroupInfoPanel = ({ group, isOpen, onClose }) => {
                 </div>
               </div>
 
-              {/* Group Description */}
+              {/* Created By */}
               <div className="w-full max-w-md">
-                <p className="text-sm text-base-content/80 italic">
-                  "Udaipur trip ki baat par gour krke sabka apna name bata de..."
+                <p className="text-xs text-base-content/50">
+                  Group created by <span className="font-medium text-primary">{group?.createdBy || 'Unknown'}</span>
+                  {group?.createdAt && (
+                    <span> on {new Date(group.createdAt).toLocaleDateString()} at {new Date(group.createdAt).toLocaleTimeString()}</span>
+                  )}
                 </p>
-                <p className="text-xs text-base-content/50 mt-1">
-                  Group created by {group?.createdBy || 'Unknown'}, on {group?.createdAt ? new Date(group.createdAt).toLocaleDateString() : 'Unknown date'} at {group?.createdAt ? new Date(group.createdAt).toLocaleTimeString() : 'Unknown time'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Media, Links and Docs */}
-          <div className="border-b border-base-300/50">
-            <button className="w-full p-4 flex items-center justify-between hover:bg-base-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <FileText className="size-5 text-blue-600" />
-                </div>
-                <span className="font-medium">Media, links and docs</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-base-content/60">{mediaCount}</span>
-                <ChevronRight className="size-4 text-base-content/40" />
-              </div>
-            </button>
-
-            {/* Media Preview */}
-            <div className="px-4 pb-4">
-              <div className="flex gap-2">
-                <div className="flex-1 grid grid-cols-4 gap-1">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="aspect-square bg-base-200 rounded-lg flex items-center justify-center">
-                      <Image className="size-6 text-base-content/40" />
-                    </div>
-                  ))}
-                </div>
-                <div className="flex flex-col gap-1 w-16">
-                  <button className="flex-1 bg-base-200 rounded-lg flex flex-col items-center justify-center text-xs text-base-content/60 hover:bg-base-300 transition-colors">
-                    <Download className="size-4 mb-1" />
-                    <span>{docsCount}</span>
-                  </button>
-                  <button className="flex-1 bg-base-200 rounded-lg flex flex-col items-center justify-center text-xs text-base-content/60 hover:bg-base-300 transition-colors">
-                    <Link className="size-4 mb-1" />
-                    <span>{linksCount}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Starred Messages */}
-          <div className="border-b border-base-300/50">
-            <button className="w-full p-4 flex items-center justify-between hover:bg-base-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-lg bg-yellow-100 flex items-center justify-center">
-                  <Star className="size-5 text-yellow-600" />
-                </div>
-                <span className="font-medium">Starred messages</span>
-              </div>
-              <ChevronRight className="size-4 text-base-content/40" />
-            </button>
-          </div>
-
-          {/* Notifications */}
-          <div className="border-b border-base-300/50">
-            <div className="p-4 space-y-4">
-              <button 
-                onClick={() => setIsMuted(!isMuted)}
-                className="w-full flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-lg bg-green-100 flex items-center justify-center">
-                    {isMuted ? <BellOff className="size-5 text-green-600" /> : <Bell className="size-5 text-green-600" />}
-                  </div>
-                  <span className="font-medium">Muted</span>
-                </div>
-                <div className={`w-12 h-6 rounded-full transition-colors ${isMuted ? 'bg-green-500' : 'bg-base-300'}`}>
-                  <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform mt-0.5 ${isMuted ? 'translate-x-6 ml-1' : 'translate-x-1'}`} />
-                </div>
-              </button>
-              {isMuted && (
-                <p className="text-sm text-base-content/60 ml-13">Always</p>
-              )}
-            </div>
-          </div>
-
-          {/* Encryption */}
-          <div className="border-b border-base-300/50">
-            <div className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-lg bg-green-100 flex items-center justify-center">
-                  <Shield className="size-5 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium">Encryption</div>
-                  <p className="text-sm text-base-content/60">Messages are end-to-end encrypted. Click to learn more.</p>
-                </div>
               </div>
             </div>
           </div>
@@ -269,9 +139,6 @@ const GroupInfoPanel = ({ group, isOpen, onClose }) => {
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-base-content">{members.length} members</h3>
-                <button className="p-2 rounded-full hover:bg-base-200 transition-colors">
-                  <Search className="size-4 text-base-content/60" />
-                </button>
               </div>
 
               {/* Members List */}
@@ -281,7 +148,7 @@ const GroupInfoPanel = ({ group, isOpen, onClose }) => {
                   const memberUsername = getMemberUsername(member);
                   const memberProfilePic = getMemberProfilePic(member);
                   const isCurrentUser = memberUsername === currentUser?.username;
-                  const isAdmin = index < 4; // Mock: first 4 members are admins
+                  const isCreator = memberUsername === group?.createdBy;
                   
                   return (
                     <div key={member?.id || memberUsername || index} className="flex items-center gap-3 p-2 rounded-lg hover:bg-base-50 transition-colors group">
@@ -310,18 +177,14 @@ const GroupInfoPanel = ({ group, isOpen, onClose }) => {
                             {memberName}
                             {isCurrentUser && <span className="text-base-content/60"> (You)</span>}
                           </span>
-                          {isAdmin && (
+                          {isCreator && (
                             <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                              Group admin
+                              Creator
                             </span>
                           )}
                         </div>
                         <p className="text-sm text-base-content/60 truncate">
-                          {memberUsername === 'you' ? 'Radiating positivity in every moment! ✨' :
-                           memberUsername === 'akshat' ? "Haven't Mind For Thinking That\" What is Good or Bad In This Work" :
-                           memberUsername === 'arsh' ? 'Hey there! I am using WhatsApp.' :
-                           memberUsername === 'hemant' ? 'Stress less and enjoy the best 😊😎' :
-                           'Hey there! I am using MessUp.'}
+                          @{memberUsername}
                         </p>
                       </div>
 
@@ -345,18 +208,8 @@ const GroupInfoPanel = ({ group, isOpen, onClose }) => {
             </div>
           </div>
 
-          {/* Add to Favourites */}
-          <div className="border-b border-base-300/50">
-            <button className="w-full p-4 flex items-center gap-3 hover:bg-base-50 transition-colors">
-              <div className="size-10 rounded-lg bg-pink-100 flex items-center justify-center">
-                <Heart className="size-5 text-pink-600" />
-              </div>
-              <span className="font-medium">Add to favourites</span>
-            </button>
-          </div>
-
-          {/* Danger Zone */}
-          <div className="space-y-1 p-4">
+          {/* Exit Group Button */}
+          <div className="p-4">
             <button 
               onClick={handleExitGroup}
               className="w-full p-4 flex items-center gap-3 hover:bg-red-50 rounded-lg transition-colors text-red-600"
@@ -365,16 +218,6 @@ const GroupInfoPanel = ({ group, isOpen, onClose }) => {
                 <LogOut className="size-5 text-red-600" />
               </div>
               <span className="font-medium">Exit group</span>
-            </button>
-
-            <button 
-              onClick={handleReportGroup}
-              className="w-full p-4 flex items-center gap-3 hover:bg-red-50 rounded-lg transition-colors text-red-600"
-            >
-              <div className="size-10 rounded-lg bg-red-100 flex items-center justify-center">
-                <AlertTriangle className="size-5 text-red-600" />
-              </div>
-              <span className="font-medium">Report group</span>
             </button>
           </div>
         </div>
