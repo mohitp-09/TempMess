@@ -43,13 +43,13 @@ groupApi.interceptors.response.use(
   }
 );
 
-// Create a new group - UPDATED TO USE /groupChat/create
+// Create a new group - MATCHES YOUR CONTROLLER: POST /create
 export const createGroup = async (groupData) => {
   try {
     console.log('📤 Creating group with data:', groupData);
     
     // Match your backend DTO structure
-    const response = await groupApi.post('/groupChat/create', {
+    const response = await groupApi.post('/create', {
       groupName: groupData.name,
       createdBy: groupData.createdBy,
       memberUsernames: groupData.members
@@ -63,12 +63,12 @@ export const createGroup = async (groupData) => {
   }
 };
 
-// Get user's groups - UPDATED TO USE /groupChat/getGroups
+// Get user's groups - MATCHES YOUR CONTROLLER: GET /getGroups
 export const getUserGroups = async () => {
   try {
     console.log('📤 Fetching user groups...');
     
-    const response = await groupApi.get('/groupChat/getGroups');
+    const response = await groupApi.get('/getGroups');
     console.log('✅ User groups fetched:', response.data);
     
     // Handle different response formats from backend
@@ -104,12 +104,12 @@ export const getUserGroups = async () => {
   }
 };
 
-// Get group messages - UPDATED TO USE /groupChat/{groupId}
+// Get group messages - MATCHES YOUR CONTROLLER: GET /{groupId}
 export const getGroupMessages = async (groupId) => {
   try {
     console.log('📤 Fetching messages for group:', groupId);
     
-    const response = await groupApi.get(`/groupChat/${groupId}`);
+    const response = await groupApi.get(`/${groupId}`);
     console.log('✅ Group messages fetched:', response.data);
     
     // Handle different response formats from backend
@@ -138,12 +138,12 @@ export const getGroupMessages = async (groupId) => {
   }
 };
 
-// Get group members - UPDATED TO USE /groupChat/getGroupMembers/{groupId}
+// Get group members - MATCHES YOUR CONTROLLER: GET /getGroupMembers/{groupId}
 export const getGroupMembers = async (groupId) => {
   try {
     console.log('📤 Fetching members for group:', groupId);
     
-    const response = await groupApi.get(`/groupChat/getGroupMembers/${groupId}`);
+    const response = await groupApi.get(`/getGroupMembers/${groupId}`);
     console.log('✅ Group members fetched:', response.data);
     
     // Handle different response formats from backend

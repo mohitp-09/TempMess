@@ -25,33 +25,6 @@ const ChatHeader = ({ user, onClose, isGroup = false, onGroupInfoClick }) => {
     }
   };
 
-  // Safe member names extraction for groups
-  const getMemberNames = () => {
-    if (!isGroup || !user?.memberNames) {
-      return user?.isOnline ? "Online" : "Offline";
-    }
-    
-    // Handle different possible formats
-    if (typeof user.memberNames === 'string') {
-      return user.memberNames;
-    }
-    
-    if (Array.isArray(user.memberNames)) {
-      return user.memberNames
-        .map(member => {
-          if (typeof member === 'string') return member;
-          if (typeof member === 'object' && member !== null) {
-            return member.fullName || member.username || member.name || 'Unknown';
-          }
-          return 'Unknown';
-        })
-        .filter(name => name && name !== 'Unknown')
-        .join(', ');
-    }
-    
-    return 'Group members';
-  };
-
   return (
     <div className="p-4 border-b border-base-300/50 bg-gradient-to-r from-base-100 to-base-50 backdrop-blur-sm">
       <div className="flex items-center justify-between">
@@ -64,12 +37,12 @@ const ChatHeader = ({ user, onClose, isGroup = false, onGroupInfoClick }) => {
                 </div>
               ) : (
                 <img
-                  src={user?.profilePic || '/avatar.png'}
-                  alt={user?.fullName || 'User'}
+                  src={user.profilePic}
+                  alt={user.fullName}
                   className="size-12 rounded-full object-cover"
                 />
               )}
-              {user?.isOnline && !isGroup && (
+              {user.isOnline && !isGroup && (
                 <span className="absolute bottom-0 right-0 size-3.5 bg-green-500 rounded-full ring-2 ring-white shadow-sm" />
               )}
             </div>
@@ -81,20 +54,24 @@ const ChatHeader = ({ user, onClose, isGroup = false, onGroupInfoClick }) => {
           >
             <h3 className="font-semibold text-base-content text-lg flex items-center gap-2 truncate">
               {isGroup && <Users className="size-4 flex-shrink-0" />}
-              {user?.fullName || user?.name || 'Unknown'}
+              {user.fullName}
             </h3>
             <p className="text-sm text-base-content/60 flex items-center gap-2 truncate">
               {isGroup ? (
                 <>
                   <Users className="size-3 flex-shrink-0" />
                   <span className="truncate">
-                    {getMemberNames()}
+                    {/* Extract member names from fullName if it contains member count */}
+                    {user.fullName.includes('members') 
+                      ? user.memberNames || 'Group members'
+                      : user.memberNames || 'Group Chat'
+                    }
                   </span>
                 </>
               ) : (
                 <>
-                  <span className={`size-2 rounded-full flex-shrink-0 ${user?.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                  {user?.isOnline ? "Online" : "Offline"}
+                  <span className={`size-2 rounded-full flex-shrink-0 ${user.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                  {user.isOnline ? "Online" : "Offline"}
                 </>
               )}
             </p>

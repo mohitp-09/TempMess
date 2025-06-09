@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
-import GroupInfoPanel from "./GroupInfoPanel";
+import GroupInfoPage from "./GroupInfoPage";
 import { formatMessageTime, getDateLabel } from "../lib/utils";
 import { useGroupChatStore } from "../store/useGroupChatStore";
 import { getCurrentUserFromToken } from "../lib/jwtUtils";
@@ -70,12 +70,22 @@ const GroupChatContainer = ({ selectedGroup, onClose }) => {
     setShowGroupInfo(true);
   };
 
-  const handleCloseGroupInfo = () => {
+  const handleBackFromGroupInfo = () => {
     setShowGroupInfo(false);
   };
 
   if (!selectedGroup) {
     return null;
+  }
+
+  // Show Group Info Page
+  if (showGroupInfo) {
+    return (
+      <GroupInfoPage 
+        group={selectedGroup} 
+        onBack={handleBackFromGroupInfo}
+      />
+    );
   }
 
   const isLoadingMessages = isLoadingOldMessages(selectedGroup.id);
@@ -111,35 +121,18 @@ const GroupChatContainer = ({ selectedGroup, onClose }) => {
     };
   };
 
-  // Safe member names extraction
-  const getMemberNames = () => {
-    if (!Array.isArray(groupMembers) || groupMembers.length === 0) {
-      return 'No members';
-    }
-    
-    return groupMembers
-      .map(member => {
-        if (typeof member === 'string') return member;
-        if (typeof member === 'object' && member !== null) {
-          return member.fullName || member.username || member.name || 'Unknown';
-        }
-        return 'Unknown';
-      })
-      .filter(name => name && name !== 'Unknown')
-      .join(', ');
-  };
-
   // Create a user object for the header with member names
+  const memberNames = groupMembers.map(member => member.fullName || member.username).join(', ');
   const groupAsUser = {
     fullName: selectedGroup.name,
     profilePic: '/avatar.png', // Default group avatar
     isOnline: true, // Groups are always "online"
     username: selectedGroup.name,
-    memberNames: getMemberNames()
+    memberNames: memberNames
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-base-100 relative">
+    <div className="flex-1 flex flex-col overflow-hidden bg-base-100">
       <ChatHeader 
         user={groupAsUser} 
         onClose={onClose} 
@@ -346,13 +339,6 @@ const GroupChatContainer = ({ selectedGroup, onClose }) => {
       </div>
 
       <MessageInput onSendMessage={handleSendMessage} />
-
-      {/* Group Info Slide-in Panel */}
-      <GroupInfoPanel 
-        group={selectedGroup}
-        isOpen={showGroupInfo}
-        onClose={handleCloseGroupInfo}
-      />
     </div>
   );
 };
