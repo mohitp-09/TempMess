@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
-import GroupInfoPage from "./GroupInfoPage";
 import { formatMessageTime, getDateLabel } from "../lib/utils";
 import { useGroupChatStore } from "../store/useGroupChatStore";
 import { getCurrentUserFromToken } from "../lib/jwtUtils";
@@ -19,7 +18,7 @@ const GroupChatContainer = ({ selectedGroup, onClose }) => {
   
   const [messages, setMessages] = useState([]);
   const [groupMembers, setGroupMembers] = useState([]);
-  const [showGroupInfo, setShowGroupInfo] = useState(false);
+  const [showMembers, setShowMembers] = useState(false);
   const authUser = getCurrentUserFromToken();
 
   // Get messages for the selected group
@@ -66,26 +65,8 @@ const GroupChatContainer = ({ selectedGroup, onClose }) => {
     }
   };
 
-  const handleGroupInfoClick = () => {
-    setShowGroupInfo(true);
-  };
-
-  const handleBackFromGroupInfo = () => {
-    setShowGroupInfo(false);
-  };
-
   if (!selectedGroup) {
     return null;
-  }
-
-  // Show Group Info Page
-  if (showGroupInfo) {
-    return (
-      <GroupInfoPage 
-        group={selectedGroup} 
-        onBack={handleBackFromGroupInfo}
-      />
-    );
   }
 
   const isLoadingMessages = isLoadingOldMessages(selectedGroup.id);
@@ -121,24 +102,65 @@ const GroupChatContainer = ({ selectedGroup, onClose }) => {
     };
   };
 
-  // Create a user object for the header with member names
-  const memberNames = groupMembers.map(member => member.fullName || member.username).join(', ');
+  // Create a user object for the header with member count
   const groupAsUser = {
-    fullName: selectedGroup.name,
+    fullName: `${selectedGroup.name} (${groupMembers.length} members)`,
     profilePic: '/avatar.png', // Default group avatar
     isOnline: true, // Groups are always "online"
-    username: selectedGroup.name,
-    memberNames: memberNames
+    username: selectedGroup.name
   };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-base-100">
-      <ChatHeader 
-        user={groupAsUser} 
-        onClose={onClose} 
-        isGroup={true}
-        onGroupInfoClick={handleGroupInfoClick}
-      />
+      <ChatHeader user={groupAsUser} onClose={onClose} isGroup={true} />
+
+      {/* Group Members Bar */}
+      <div className="px-4 py-2 border-b border-base-300/50 bg-base-50">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setShowMembers(!showMembers)}
+            className="flex items-center gap-2 text-sm text-base-content/70 hover:text-base-content transition-colors"
+          >
+            <Users className="size-4" />
+            <span>{groupMembers.length} members</span>
+            <span className={`transition-transform ${showMembers ? 'rotate-180' : ''}`}>
+              ▼
+            </span>
+          </button>
+          
+          <button className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors">
+            <UserPlus className="size-4" />
+            <span>Add Member</span>
+          </button>
+        </div>
+        
+        {/* Members List */}
+        {showMembers && (
+          <div className="mt-3 flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+            {groupMembers.map((member) => (
+              <div
+                key={member.id}
+                className="flex items-center gap-2 bg-base-200/50 rounded-full px-3 py-1 text-sm"
+              >
+                <div className="size-6 rounded-full overflow-hidden">
+                  <img
+                    src={member.profilePic}
+                    alt={member.fullName}
+                    className="size-6 object-cover"
+                    onError={(e) => {
+                      e.target.src = '/avatar.png';
+                    }}
+                  />
+                </div>
+                <span className="text-base-content/80">{member.fullName}</span>
+                {member.username === authUser?.username && (
+                  <span className="text-xs text-primary">(You)</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-1 bg-gradient-to-b from-base-100 to-base-50">
         {isLoadingMessages ? (

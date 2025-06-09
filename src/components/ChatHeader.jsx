@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Phone, Video, Search, ChevronRight, ChevronDown, MoreVertical, Users } from "lucide-react";
 
-const ChatHeader = ({ user, onClose, isGroup = false, onGroupInfoClick }) => {
+const ChatHeader = ({ user, onClose, isGroup = false }) => {
   const [showSearch, setShowSearch] = useState(false);
   const [expandActions, setExpandActions] = useState(false);
 
@@ -19,16 +19,10 @@ const ChatHeader = ({ user, onClose, isGroup = false, onGroupInfoClick }) => {
     }
   };
 
-  const handleHeaderClick = () => {
-    if (isGroup && onGroupInfoClick) {
-      onGroupInfoClick();
-    }
-  };
-
   return (
     <div className="p-4 border-b border-base-300/50 bg-gradient-to-r from-base-100 to-base-50 backdrop-blur-sm">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4 flex-1 min-w-0">
+        <div className="flex items-center gap-4">
           <div className="relative">
             <div className="size-12 rounded-full ring-2 ring-base-300/50 shadow-md overflow-hidden">
               {isGroup ? (
@@ -47,35 +41,25 @@ const ChatHeader = ({ user, onClose, isGroup = false, onGroupInfoClick }) => {
               )}
             </div>
           </div>
-          
-          <button 
-            onClick={handleHeaderClick}
-            className={`flex-1 min-w-0 text-left ${isGroup ? 'hover:bg-base-200/50 rounded-lg p-2 -m-2 transition-colors' : ''}`}
-          >
-            <h3 className="font-semibold text-base-content text-lg flex items-center gap-2 truncate">
-              {isGroup && <Users className="size-4 flex-shrink-0" />}
+          <div>
+            <h3 className="font-semibold text-base-content text-lg flex items-center gap-2">
+              {isGroup && <Users className="size-4" />}
               {user.fullName}
             </h3>
-            <p className="text-sm text-base-content/60 flex items-center gap-2 truncate">
+            <p className="text-sm text-base-content/60 flex items-center gap-2">
               {isGroup ? (
                 <>
-                  <Users className="size-3 flex-shrink-0" />
-                  <span className="truncate">
-                    {/* Extract member names from fullName if it contains member count */}
-                    {user.fullName.includes('members') 
-                      ? user.memberNames || 'Group members'
-                      : user.memberNames || 'Group Chat'
-                    }
-                  </span>
+                  <Users className="size-3" />
+                  Group Chat
                 </>
               ) : (
                 <>
-                  <span className={`size-2 rounded-full flex-shrink-0 ${user.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                  <span className={`size-2 rounded-full ${user.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
                   {user.isOnline ? "Online" : "Offline"}
                 </>
               )}
             </p>
-          </button>
+          </div>
         </div>
 
         <div className="flex items-center">
