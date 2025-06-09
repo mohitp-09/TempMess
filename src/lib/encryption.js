@@ -135,17 +135,19 @@ class EncryptionService {
   // Check if message is encrypted JSON - IMPROVED VALIDATION
   isEncryptedMessage(message) {
     if (!message || typeof message !== 'string') {
+      console.log('🔍 Not encrypted: message is not a string or is empty');
       return false;
     }
     
     // Check if it looks like encrypted JSON
-    if (!message.startsWith('{') || !message.includes('encryptedMessage')) {
+    if (!message.trim().startsWith('{')) {
+      console.log('🔍 Not encrypted: message does not start with {');
       return false;
     }
     
     try {
       const parsed = JSON.parse(message);
-      return parsed && 
+      const isEncrypted = parsed && 
              typeof parsed === 'object' && 
              typeof parsed.encryptedMessage === 'string' && 
              typeof parsed.encryptedKey === 'string' && 
@@ -153,8 +155,15 @@ class EncryptionService {
              parsed.encryptedMessage.length > 0 &&
              parsed.encryptedKey.length > 0 &&
              parsed.iv.length > 0;
+      
+      console.log('🔍 Encryption check result:', isEncrypted);
+      if (isEncrypted) {
+        console.log('🔍 Found encrypted message with keys:', Object.keys(parsed));
+      }
+      
+      return isEncrypted;
     } catch (error) {
-      console.warn('⚠️ Failed to parse potential encrypted message:', error);
+      console.log('🔍 Not encrypted: JSON parse failed:', error.message);
       return false;
     }
   }
@@ -219,22 +228,27 @@ class EncryptionService {
     }
   }
 
-  // Decrypt message using hybrid decryption - IMPROVED ERROR HANDLING
+  // Decrypt message using hybrid decryption - IMPROVED ERROR HANDLING AND LOGGING
   async decryptMessage(encryptedMessageString) {
     try {
       if (!this.privateKey) {
+        console.log('🔓 Loading private key for decryption...');
         await this.loadKeys();
       }
 
       // Validate input
       if (!encryptedMessageString || typeof encryptedMessageString !== 'string') {
-        throw new Error('Invalid encrypted message format');
+        throw new Error('Invalid encrypted message format - not a string');
       }
+
+      console.log('🔓 Attempting to decrypt message of length:', encryptedMessageString.length);
+      console.log('🔓 Message preview:', encryptedMessageString.substring(0, 200) + '...');
 
       // Parse encrypted data with better error handling
       let encryptedData;
       try {
         encryptedData = JSON.parse(encryptedMessageString);
+        console.log('🔓 Successfully parsed JSON, keys found:', Object.keys(encryptedData));
       } catch (parseError) {
         console.error('❌ Failed to parse encrypted message JSON:', parseError);
         throw new Error('Invalid encrypted message JSON format');
@@ -245,12 +259,18 @@ class EncryptionService {
           typeof encryptedData.encryptedMessage !== 'string' ||
           typeof encryptedData.encryptedKey !== 'string' ||
           typeof encryptedData.iv !== 'string') {
+        console.error('❌ Missing required encryption fields:', {
+          hasEncryptedMessage: typeof encryptedData.encryptedMessage,
+          hasEncryptedKey: typeof encryptedData.encryptedKey,
+          hasIv: typeof encryptedData.iv
+        });
         throw new Error('Missing required encryption fields');
       }
 
-      console.log('🔓 Attempting to decrypt message...');
+      console.log('🔓 All required fields present, proceeding with decryption...');
 
       // Decrypt AES key with our RSA private key
+      console.log('🔓 Decrypting AES key...');
       const encryptedAESKey = this.base64ToArrayBuffer(encryptedData.encryptedKey);
       const aesKeyRaw = await window.crypto.subtle.decrypt(
         {
@@ -259,8 +279,10 @@ class EncryptionService {
         this.privateKey,
         encryptedAESKey
       );
+      console.log('🔓 AES key decrypted successfully');
 
       // Import the decrypted AES key
+      console.log('🔓 Importing AES key...');
       const aesKey = await window.crypto.subtle.importKey(
         "raw",
         aesKeyRaw,
@@ -270,8 +292,10 @@ class EncryptionService {
         false,
         ["decrypt"]
       );
+      console.log('🔓 AES key imported successfully');
 
       // Decrypt the message with AES
+      console.log('🔓 Decrypting message content...');
       const encryptedMessage = this.base64ToArrayBuffer(encryptedData.encryptedMessage);
       const iv = this.base64ToArrayBuffer(encryptedData.iv);
 
@@ -283,22 +307,26 @@ class EncryptionService {
         aesKey,
         encryptedMessage
       );
+      console.log('🔓 Message content decrypted successfully');
 
       // Convert back to string
       const decoder = new TextDecoder();
       const decryptedText = decoder.decode(decryptedMessage);
       
-      console.log('🔓 Message decrypted successfully:', decryptedText.substring(0, 50) + '...');
+      console.log('🔓 Final decrypted text:', decryptedText);
       return decryptedText;
     } catch (error) {
       console.error('❌ Failed to decrypt message:', error.message);
       console.error('❌ Full error:', error);
+      console.error('❌ Error stack:', error.stack);
       
       // Return a more specific error message
       if (error.message.includes('JSON')) {
         return '[Invalid encrypted message format]';
-      } else if (error.message.includes('decrypt')) {
+      } else if (error.message.includes('decrypt') || error.name === 'OperationError') {
         return '[Decryption failed - wrong key?]';
+      } else if (error.message.includes('base64')) {
+        return '[Invalid message encoding]';
       } else {
         return '[Message could not be decrypted]';
       }

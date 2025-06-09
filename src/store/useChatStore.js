@@ -57,7 +57,7 @@ const useChatStore = create((set, get) => ({
     set({ isConnected: false });
   },
 
-  // Load old messages for a user and decrypt them - IMPROVED DECRYPTION
+  // Load old messages for a user and decrypt them - FIXED FOR API RESPONSE FORMAT
   loadOldMessages: async (username) => {
     const { loadingOldMessages } = get();
     
@@ -78,8 +78,9 @@ const useChatStore = create((set, get) => ({
       const oldMessages = await getOldChatMessages(username);
       
       console.log('📥 Loaded old messages:', oldMessages.length);
+      console.log('📥 Sample message structure:', oldMessages[0]);
       
-      // Decrypt messages if they are encrypted - IMPROVED LOGIC
+      // Decrypt messages if they are encrypted - FIXED LOGIC FOR API RESPONSE
       const decryptedMessages = await Promise.all(
         oldMessages.map(async (msg, index) => {
           // Check if message text exists and is potentially encrypted
@@ -91,12 +92,14 @@ const useChatStore = create((set, get) => ({
             };
           }
 
-          // Check if it's an encrypted message
+          console.log(`🔍 Processing message ${index}:`, msg.text.substring(0, 100) + '...');
+
+          // Check if it's an encrypted message (JSON format)
           if (encryptionService.isEncryptedMessage(msg.text)) {
             try {
               console.log(`🔓 Attempting to decrypt old message ${index}...`);
               const decryptedText = await encryptionService.decryptMessage(msg.text);
-              console.log(`✅ Old message ${index} decrypted successfully`);
+              console.log(`✅ Old message ${index} decrypted successfully:`, decryptedText.substring(0, 50) + '...');
               return {
                 ...msg,
                 text: decryptedText,
@@ -129,6 +132,7 @@ const useChatStore = create((set, get) => ({
       );
 
       console.log(`📋 Processed ${sortedMessages.length} messages for ${username}`);
+      console.log('📋 Sample processed message:', sortedMessages[0]);
 
       set((state) => ({
         messages: {
@@ -338,7 +342,7 @@ const useChatStore = create((set, get) => ({
             ...state.messages,
             [username]: state.messages[username].map(msg => 
               msg._id === readReceiptData.messageId 
-                ? { ...msg, status: 'READ' }
+                ? { ...msg, status: 'read' }
                 : msg
             )
           }
