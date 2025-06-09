@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Camera, Mic, Plus, Send, X, Image, Smile, Paperclip, Zap } from "lucide-react";
+import { Camera, Mic, Plus, Send, X, Image, Smile } from "lucide-react";
 
 const MessageInput = ({ onSendMessage }) => {
   const [text, setText] = useState("");
@@ -37,153 +37,123 @@ const MessageInput = ({ onSendMessage }) => {
   };
 
   const drawerOptions = [
-    { 
-      id: "camera", 
-      icon: <Camera size={20} />, 
-      label: "Camera", 
-      gradient: "from-blue-500 to-blue-600",
-      onClick: () => console.log("Camera clicked")
-    },
+    { id: "camera", icon: <Camera size={20} />, label: "Camera", color: "text-blue-600" },
     {
       id: "gallery",
       icon: <Image size={20} />,
       label: "Photo & Video",
-      gradient: "from-green-500 to-emerald-500",
+      color: "text-green-600",
       onClick: () => fileInputRef.current?.click(),
-    },
-    {
-      id: "document",
-      icon: <Paperclip size={20} />,
-      label: "Document",
-      gradient: "from-purple-500 to-purple-600",
-      onClick: () => console.log("Document clicked")
     },
   ];
 
   return (
-    <div className="p-6 glass-strong border-t border-white/10 relative overflow-hidden">
-      {/* Background Decoration */}
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-secondary/5 pointer-events-none" />
-      
-      <div className="relative z-10">
-        {/* Enhanced Image Preview */}
-        {imagePreview && (
-          <div className="mb-4 animate-slide-up">
-            <div className="flex items-center gap-4">
-              <div className="relative group">
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="w-24 h-24 object-cover rounded-2xl shadow-macos glass-subtle"
-                />
-                <button
-                  onClick={removeImage}
-                  className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center shadow-macos hover:bg-red-600 transition-all duration-300 group-hover:scale-110 hover-lift"
-                  type="button"
-                >
-                  <X className="size-4" />
-                </button>
-              </div>
-              <div className="text-sm text-base-content/80 space-y-1">
-                <p className="font-medium flex items-center gap-2">
-                  <Zap className="size-4 text-primary" />
-                  Image ready to send
-                </p>
-                <p className="text-xs opacity-75">Click send or add a message</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="flex items-end gap-3">
-          <div className="relative flex-1">
-            {/* Enhanced Input Container */}
-            <div className={`relative flex items-center glass-strong rounded-2xl border-2 transition-all duration-300 shadow-macos ${
-              isFocused ? 'border-primary/30 shadow-macos-lg' : 'border-white/10'
-            }`}>
-              <input
-                type="text"
-                className="flex-1 px-4 py-4 bg-transparent rounded-2xl focus:outline-none placeholder:text-base-content/50 text-base-content text-[15px]"
-                placeholder="Type a message..."
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-              />
-              
-              {/* Enhanced Action Icons */}
-              <div className="flex items-center gap-1 pr-3">
-                <button
-                  type="button"
-                  className="p-2.5 rounded-xl glass-subtle hover:glass-strong transition-all duration-300 group hover-lift"
-                  title="Emoji"
-                >
-                  <Smile size={18} className="text-base-content/60 group-hover:text-yellow-500 transition-colors" />
-                </button>
-                
-                <button
-                  type="button"
-                  className="p-2.5 rounded-xl glass-subtle hover:glass-strong transition-all duration-300 group relative hover-lift"
-                  onClick={() => setShowDrawer(!showDrawer)}
-                  title="Attach"
-                >
-                  <Plus size={18} className={`text-base-content/60 group-hover:text-primary transition-all duration-300 ${showDrawer ? 'rotate-45' : ''}`} />
-                </button>
-              </div>
-            </div>
-
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              ref={fileInputRef}
-              onChange={handleImageChange}
+    <div className="p-4 bg-gradient-to-r from-base-100 to-base-50 border-t border-base-300/50">
+      {imagePreview && (
+        <div className="mb-4 flex items-center gap-3">
+          <div className="relative group">
+            <img
+              src={imagePreview}
+              alt="Preview"
+              className="w-20 h-20 object-cover rounded-xl border-2 border-base-300/50 shadow-md"
             />
+            <button
+              onClick={removeImage}
+              className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow-md hover:bg-red-600 transition-colors group-hover:scale-110 transform duration-200"
+              type="button"
+            >
+              <X className="size-3" />
+            </button>
+          </div>
+          <div className="text-sm text-base-content/60">
+            <p className="font-medium">Image ready to send</p>
+            <p className="text-xs">Click send or add a message</p>
+          </div>
+        </div>
+      )}
 
-            {/* Enhanced Attachment Drawer */}
-            {showDrawer && (
-              <div className="absolute bottom-full right-0 mb-3 card-macos-strong p-2 min-w-52 animate-scale-in">
-                {drawerOptions.map((option, index) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={option.onClick}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl glass-subtle hover:glass-strong transition-all duration-300 text-left group hover-lift"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <div className={`bg-gradient-to-r ${option.gradient} p-2.5 rounded-xl shadow-macos group-hover:scale-110 transition-transform duration-300`}>
-                      <div className="text-white">
-                        {option.icon}
-                      </div>
-                    </div>
-                    <span className="text-sm font-medium text-base-content group-hover:text-base-content/80">
-                      {option.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
+      <form onSubmit={handleSubmit} className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <div className={`relative flex items-center bg-base-200/80 backdrop-blur-sm rounded-2xl border-2 transition-all duration-200 ${
+            isFocused ? 'border-primary/50 shadow-lg shadow-primary/10' : 'border-base-300/50'
+          }`}>
+            <input
+              type="text"
+              className="flex-1 px-4 py-3 bg-transparent rounded-2xl focus:outline-none placeholder:text-base-content/50 text-base-content"
+              placeholder="Type a message..."
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+            />
+            
+            {/* Fixed icon alignment container */}
+            <div className="flex items-center gap-1 pr-3">
+              <button
+                type="button"
+                className="p-2 rounded-full hover:bg-base-300/80 transition-all duration-200 group flex items-center justify-center"
+                title="Emoji"
+              >
+                <Smile size={18} className="text-base-content/60 group-hover:text-base-content transition-colors" />
+              </button>
+              
+              <button
+                type="button"
+                className="p-2 rounded-full hover:bg-base-300/80 transition-all duration-200 group relative flex items-center justify-center"
+                onClick={() => setShowDrawer(!showDrawer)}
+                title="Attach"
+              >
+                <Plus size={18} className={`text-base-content/60 group-hover:text-base-content transition-all duration-200 ${showDrawer ? 'rotate-45' : ''}`} />
+              </button>
+            </div>
           </div>
 
-          {/* Enhanced Send Button */}
-          <button
-            type="submit"
-            className={`p-4 rounded-2xl transition-all duration-300 flex items-center justify-center shadow-macos hover-lift ${
-              text.trim() || imagePreview
-                ? 'bg-gradient-to-r from-primary to-primary/90 text-primary-content hover:shadow-macos-lg hover:scale-105 animate-pulse-glow'
-                : 'glass-subtle text-base-content/60 cursor-not-allowed'
-            }`}
-            disabled={!text.trim() && !imagePreview}
-            title={text.trim() || imagePreview ? "Send message" : "Send voice message"}
-          >
-            {text.trim() || imagePreview ? (
-              <Send size={20} className="transform translate-x-0.5" />
-            ) : (
-              <Mic size={20} />
-            )}
-          </button>
-        </form>
-      </div>
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleImageChange}
+          />
+
+          {showDrawer && (
+            <div className="absolute bottom-full right-0 mb-2 bg-base-100 rounded-xl shadow-xl border border-base-300/50 p-2 min-w-48 backdrop-blur-sm">
+              {drawerOptions.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={option.onClick}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-base-200/80 transition-all duration-200 text-left group"
+                >
+                  <div className={`${option.color} group-hover:scale-110 transition-transform duration-200`}>
+                    {option.icon}
+                  </div>
+                  <span className="text-sm font-medium text-base-content group-hover:text-base-content/80">
+                    {option.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          className={`p-3 rounded-full transition-all duration-200 flex items-center justify-center shadow-lg ${
+            text.trim() || imagePreview
+              ? 'bg-gradient-to-r from-primary to-primary/90 text-primary-content hover:shadow-xl hover:scale-105 transform'
+              : 'bg-base-300/80 text-base-content/60 cursor-not-allowed'
+          }`}
+          disabled={!text.trim() && !imagePreview}
+          title={text.trim() || imagePreview ? "Send message" : "Send voice message"}
+        >
+          {text.trim() || imagePreview ? (
+            <Send size={20} className="transform translate-x-0.5" />
+          ) : (
+            <Mic size={20} />
+          )}
+        </button>
+      </form>
     </div>
   );
 };

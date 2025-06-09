@@ -1,4 +1,4 @@
-import { Plus, Search, Users, MessageCircle, Bell, UsersRound, X, AlignLeft, Sparkles, Zap } from "lucide-react";
+import { Plus, Search, Users, MessageCircle, Bell, UsersRound, X, AlignLeft, Sparkles } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { getAllFriends } from "../lib/api";
 import { useChatStore } from "../store/useChatStore";
@@ -36,9 +36,9 @@ const Sidebar = ({ onSelectUser, onSelectGroup, selectedUserId, selectedGroupId,
   } = useGroupChatStore();
 
   const tabs = [
-    { id: "all", label: "All", icon: <MessageCircle className="size-4" />, gradient: "from-blue-500 to-blue-600" },
-    { id: "unread", label: "Unread", icon: <Bell className="size-4" />, gradient: "from-orange-500 to-red-500" },
-    { id: "groups", label: "Groups", icon: <UsersRound className="size-4" />, gradient: "from-purple-500 to-pink-500" },
+    { id: "all", label: "All", icon: <MessageCircle className="size-4" /> },
+    { id: "unread", label: "Unread", icon: <Bell className="size-4" /> },
+    { id: "groups", label: "Groups", icon: <UsersRound className="size-4" /> },
   ];
 
   const drawerOptions = [
@@ -46,7 +46,7 @@ const Sidebar = ({ onSelectUser, onSelectGroup, selectedUserId, selectedGroupId,
       id: "newGroup", 
       label: "New Group", 
       icon: <UsersRound className="size-5" />,
-      gradient: "from-purple-500 to-pink-500",
+      color: "text-blue-600",
       onClick: () => {
         setShowCreateGroupModal(true);
         setShowDrawer(false);
@@ -54,9 +54,9 @@ const Sidebar = ({ onSelectUser, onSelectGroup, selectedUserId, selectedGroupId,
     },
     { 
       id: "addUser", 
-      label: "Add Friend", 
+      label: "Add User", 
       icon: <Users className="size-5" />,
-      gradient: "from-green-500 to-emerald-500",
+      color: "text-green-600",
       onClick: () => {
         setShowAddUserModal(true);
         setShowDrawer(false);
@@ -117,8 +117,8 @@ const Sidebar = ({ onSelectUser, onSelectGroup, selectedUserId, selectedGroupId,
         ...group,
         type: 'group',
         fullName: group.name,
-        profilePic: '/avatar.png',
-        isOnline: true
+        profilePic: '/avatar.png', // Default group avatar
+        isOnline: true // Groups are always "online"
       }));
     } else {
       items = friends.map(friend => ({
@@ -159,9 +159,11 @@ const Sidebar = ({ onSelectUser, onSelectGroup, selectedUserId, selectedGroupId,
 
   const handleItemSelect = async (item) => {
     if (item.type === 'group') {
+      // Select group
       await selectGroup(item);
       onSelectGroup(item);
     } else {
+      // Select user
       await selectUser(item);
       onSelectUser(item);
     }
@@ -190,6 +192,7 @@ const Sidebar = ({ onSelectUser, onSelectGroup, selectedUserId, selectedGroupId,
   };
 
   const handleGroupCreated = () => {
+    // Refresh groups list when a new group is created
     refreshGroups();
   };
 
@@ -215,23 +218,22 @@ const Sidebar = ({ onSelectUser, onSelectGroup, selectedUserId, selectedGroupId,
   return (
     <>
       <aside
-        className={`h-full border-r-0 flex flex-col transition-all duration-500 ease-out relative glass-subtle ${
+        className={`h-full border-r border-base-300/50 flex flex-col transition-all duration-300 relative bg-gradient-to-b from-base-100 to-base-50 ${
           isExpanded ? 'w-80' : 'w-[68px]'
         } lg:w-80`}
       >
-        {/* Header Section */}
-        <div className="border-b border-white/10 w-full p-4 flex flex-col gap-4 glass-strong">
+        <div className="border-b border-base-300/50 w-full p-4 flex flex-col gap-4 bg-base-100/80 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <button
               onClick={toggleSidebar}
-              className="size-10 flex items-center justify-center rounded-xl glass-subtle hover:glass-strong transition-all duration-300 lg:hidden group hover-lift"
+              className="size-10 flex items-center justify-center rounded-xl hover:bg-base-200/80 transition-all duration-200 lg:hidden group"
               aria-label="Toggle sidebar"
             >
               <AlignLeft className="size-5 text-base-content/70 group-hover:text-base-content transition-colors" />
             </button>
 
             <div className={`relative flex-1 ${!isExpanded && 'hidden'} lg:block`}>
-              <div className="relative flex items-center gap-3">
+              <div className="relative flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-base-content/40" />
                   <input
@@ -239,153 +241,139 @@ const Sidebar = ({ onSelectUser, onSelectGroup, selectedUserId, selectedGroupId,
                     placeholder={activeTab === "groups" ? "Search groups" : "Search friends"}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="input-macos pl-10 text-sm"
+                    className="w-full pl-10 pr-4 py-2.5 bg-base-200/80 backdrop-blur-sm rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 border border-base-300/50 transition-all duration-200"
                   />
                 </div>
                 <button
                   ref={buttonRef}
                   onClick={toggleDrawer}
-                  className="size-10 flex items-center justify-center rounded-xl bg-gradient-to-r from-primary/20 to-primary/30 hover:from-primary/30 hover:to-primary/40 transition-all duration-300 group relative hover-lift shadow-macos"
+                  className="size-10 flex items-center justify-center rounded-xl bg-primary/10 hover:bg-primary/20 transition-all duration-200 group relative"
                   aria-label={showDrawer ? "Close menu" : "Open menu"}
                 >
                   {showDrawer ? (
-                    <X className="size-5 text-primary transition-transform duration-300 rotate-90" />
+                    <X className="size-5 text-primary transition-transform duration-200" />
                   ) : (
-                    <Plus className="size-5 text-primary transition-transform duration-300 group-hover:rotate-90" />
+                    <Plus className="size-5 text-primary transition-transform duration-200 group-hover:rotate-90" />
                   )}
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-primary to-secondary rounded-full animate-pulse-glow" />
+                  <Sparkles className="absolute -top-1 -right-1 size-3 text-primary/60 animate-pulse" />
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Enhanced Tabs */}
+          {/* Fixed tabs container with proper width and no overflow */}
           <div className={`flex py-1 gap-2 ${!isExpanded && 'hidden'} lg:flex`}>
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`flex-1 min-w-0 px-3 py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm transition-all duration-300 hover-lift ${
+                className={`flex-1 min-w-0 px-3 py-2 rounded-xl flex items-center justify-center gap-2 text-sm transition-all duration-200 ${
                   activeTab === tab.id
-                    ? `glass-strong shadow-macos text-primary font-medium`
-                    : "glass-subtle hover:glass-strong text-base-content/70 hover:text-base-content"
+                    ? "bg-primary/10 text-primary font-medium shadow-sm"
+                    : "hover:bg-base-200/80 text-base-content/70 hover:text-base-content"
                 }`}
               >
-                <span className={`flex-shrink-0 ${activeTab === tab.id ? 'animate-pulse-glow' : ''}`}>
-                  {tab.icon}
-                </span>
+                <span className="flex-shrink-0">{tab.icon}</span>
                 <span className="truncate text-xs sm:text-sm">{tab.label}</span>
-                {activeTab === tab.id && (
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r opacity-10 pointer-events-none" 
-                       style={{ background: `linear-gradient(135deg, ${tab.gradient.split(' ')[1]}, ${tab.gradient.split(' ')[3]})` }} />
-                )}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Content Section */}
-        <div className="overflow-y-auto w-full py-2 flex-1 scrollbar-macos">
+        <div className="overflow-y-auto w-full py-2 flex-1">
           {isLoadingFriends && activeTab !== "groups" ? (
             <div className="flex items-center justify-center py-12">
-              <div className="flex flex-col items-center gap-4 animate-slide-up">
-                <div className="relative">
-                  <div className="animate-spin size-8 border-2 border-primary/30 border-t-primary rounded-full" />
-                  <div className="absolute inset-0 animate-ping size-8 border border-primary/20 rounded-full" />
-                </div>
+              <div className="flex flex-col items-center gap-3">
+                <div className="animate-spin size-8 border-2 border-primary border-t-transparent rounded-full"></div>
                 <span className={`text-sm text-base-content/60 font-medium ${!isExpanded && 'hidden'} lg:block`}>
                   Loading friends...
                 </span>
               </div>
             </div>
           ) : filteredItems.length > 0 ? (
-            <div className="space-y-1 px-2">
-              {filteredItems.map((item, index) => {
-                const lastMessage = item.type === 'group' 
-                  ? getLastMessageForGroup(item.id)
-                  : getLastMessageForUser(item.username);
-                const unreadCount = item.type === 'group'
-                  ? getUnreadCountForGroup(item.id)
-                  : getUnreadCountForUser(item.username);
-                const isSelected = item.type === 'group' 
-                  ? selectedGroupId === item.id
-                  : selectedUserId === item._id;
+            filteredItems.map((item) => {
+              const lastMessage = item.type === 'group' 
+                ? getLastMessageForGroup(item.id)
+                : getLastMessageForUser(item.username);
+              const unreadCount = item.type === 'group'
+                ? getUnreadCountForGroup(item.id)
+                : getUnreadCountForUser(item.username);
+              const isSelected = item.type === 'group' 
+                ? selectedGroupId === item.id
+                : selectedUserId === item._id;
 
-                return (
-                  <button
-                    key={item.type === 'group' ? `group-${item.id}` : `user-${item._id}`}
-                    onClick={() => handleItemSelect(item)}
-                    className={`w-full p-3 mb-1 flex items-center gap-3 rounded-xl transition-all duration-300 group hover-lift animate-slide-up ${
-                      isSelected 
-                        ? "glass-strong shadow-macos border border-primary/20" 
-                        : "glass-subtle hover:glass-strong"
-                    }`}
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <div className="relative mx-auto lg:mx-0 flex-shrink-0">
-                      <div className="size-12 rounded-full shadow-macos overflow-hidden relative">
-                        {item.type === 'group' ? (
-                          <div className="size-12 bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center glass-subtle">
-                            <UsersRound className="size-6 text-purple-600" />
-                          </div>
-                        ) : (
-                          <img
-                            src={item.profilePic}
-                            alt={item.fullName}
-                            className="size-12 object-cover rounded-full"
-                            onError={(e) => {
-                              e.target.src = '/avatar.png';
-                            }}
-                          />
-                        )}
-                        {/* Enhanced online indicator */}
-                        {item.isOnline && item.type !== 'group' && (
-                          <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-macos animate-pulse-glow" />
-                        )}
-                      </div>
+              return (
+                <button
+                  key={item.type === 'group' ? `group-${item.id}` : `user-${item._id}`}
+                  onClick={() => handleItemSelect(item)}
+                  className={`w-full p-3 mx-2 mb-1 flex items-center gap-3 rounded-xl transition-all duration-200 group ${
+                    isSelected 
+                      ? "bg-primary/10 border border-primary/20 shadow-sm" 
+                      : "hover:bg-base-200/80"
+                  }`}
+                >
+                  <div className="relative mx-auto lg:mx-0 flex-shrink-0">
+                    <div className="size-12 rounded-full ring-2 ring-base-300/50 shadow-sm overflow-hidden">
+                      {item.type === 'group' ? (
+                        <div className="size-12 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                          <UsersRound className="size-6 text-primary" />
+                        </div>
+                      ) : (
+                        <img
+                          src={item.profilePic}
+                          alt={item.fullName}
+                          className="size-12 object-cover rounded-full"
+                          onError={(e) => {
+                            e.target.src = '/avatar.png';
+                          }}
+                        />
+                      )}
                     </div>
+                    {item.isOnline && item.type !== 'group' && (
+                     <span className="absolute bottom-0 right-0 h-3.5 w-3.5 bg-green-500 rounded-full ring-2 ring-white shadow-sm" />
+                    )}
+                  </div>
 
-                    <div className={`${!isExpanded && 'hidden'} lg:block text-left min-w-0 flex-1`}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`font-medium truncate transition-colors flex items-center gap-2 ${
-                          isSelected ? 'text-primary' : 'text-base-content group-hover:text-base-content'
-                        }`}>
-                          {item.type === 'group' && <UsersRound className="size-3 opacity-60" />}
-                          {item.fullName}
+                  <div className={`${!isExpanded && 'hidden'} lg:block text-left min-w-0 flex-1`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`font-medium truncate transition-colors flex items-center gap-2 ${
+                        isSelected ? 'text-primary' : 'text-base-content group-hover:text-base-content'
+                      }`}>
+                        {item.type === 'group' && <UsersRound className="size-3" />}
+                        {item.fullName}
+                      </span>
+                      {lastMessage && (
+                        <span className="text-xs text-base-content/40 font-medium flex-shrink-0 ml-2">
+                          {formatMessageTime(lastMessage.createdAt)}
                         </span>
-                        {lastMessage && (
-                          <span className="text-xs text-base-content/40 font-medium flex-shrink-0 ml-2">
-                            {formatMessageTime(lastMessage.createdAt)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-base-content/60 truncate leading-relaxed pr-2">
-                          {lastMessage ? lastMessage.text : item.type === 'group' ? 'Start group conversation' : 'Start a conversation'}
-                        </span>
-                        {unreadCount > 0 && (
-                          <div className="flex items-center justify-center min-w-5 h-5 text-xs font-bold bg-gradient-to-r from-primary to-primary/80 text-primary-content rounded-full px-1.5 shadow-macos flex-shrink-0 animate-pulse-glow">
-                            {unreadCount}
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
-                  </button>
-                );
-              })}
-            </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-base-content/60 truncate leading-relaxed pr-2">
+                        {lastMessage ? lastMessage.text : item.type === 'group' ? 'Start group conversation' : 'Start a conversation'}
+                      </span>
+                      {unreadCount > 0 && (
+                        <span className="flex items-center justify-center min-w-5 h-5 text-xs font-bold bg-primary text-primary-content rounded-full px-1.5 shadow-sm flex-shrink-0">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })
           ) : (
             <div className="text-center text-base-content/40 py-12 px-4">
-              <div className="flex flex-col items-center gap-6 animate-slide-up">
-                <div className="size-20 rounded-2xl glass-subtle flex items-center justify-center shadow-macos">
+              <div className="flex flex-col items-center gap-4">
+                <div className="size-16 rounded-full bg-base-200/50 flex items-center justify-center">
                   {activeTab === "groups" ? (
-                    <UsersRound className="size-10 opacity-40" />
+                    <UsersRound className="size-8 opacity-40" />
                   ) : (
-                    <Users className="size-10 opacity-40" />
+                    <Users className="size-8 opacity-40" />
                   )}
                 </div>
-                <div className={`${!isExpanded && 'hidden'} lg:block space-y-2`}>
-                  <p className="text-sm font-medium">
+                <div className={`${!isExpanded && 'hidden'} lg:block`}>
+                  <p className="text-sm font-medium mb-1">
                     {searchQuery 
                       ? `No ${activeTab === "groups" ? "groups" : "friends"} found` 
                       : activeTab === "groups" 
@@ -405,23 +393,19 @@ const Sidebar = ({ onSelectUser, onSelectGroup, selectedUserId, selectedGroupId,
           )}
         </div>
 
-        {/* Enhanced Drawer */}
         {showDrawer && (
           <div
             ref={drawerRef}
-            className="absolute top-20 right-4 z-20 card-macos-strong p-2 min-w-48 animate-scale-in"
+            className="absolute top-20 right-4 z-10 bg-base-100/95 backdrop-blur-sm border border-base-300/50 rounded-xl shadow-xl p-2 min-w-44 animate-in fade-in zoom-in-95 duration-200"
           >
-            {drawerOptions.map((option, index) => (
+            {drawerOptions.map((option) => (
               <button
                 key={option.id}
                 onClick={option.onClick}
-                className="w-full flex items-center gap-3 p-3 rounded-xl glass-subtle hover:glass-strong transition-all duration-300 text-left text-sm group hover-lift"
-                style={{ animationDelay: `${index * 100}ms` }}
+                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-base-200/80 transition-all duration-200 text-left text-sm group"
               >
-                <div className={`bg-gradient-to-r ${option.gradient} p-2 rounded-lg shadow-macos group-hover:scale-110 transition-transform duration-300`}>
-                  <div className="text-white">
-                    {option.icon}
-                  </div>
+                <div className={`${option.color} group-hover:scale-110 transition-transform duration-200`}>
+                  {option.icon}
                 </div>
                 <span className="font-medium text-base-content group-hover:text-base-content/80">
                   {option.label}

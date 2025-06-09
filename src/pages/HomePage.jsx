@@ -81,52 +81,39 @@ const HomePage = () => {
   const isLoading = chatLoading || groupChatLoading;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-base-200/50 via-base-100/30 to-base-200/50 relative overflow-hidden">
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-float-gentle" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-secondary/5 rounded-full blur-3xl animate-float-gentle" style={{ animationDelay: '3s' }} />
-        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-accent/5 rounded-full blur-3xl animate-float-gentle" style={{ animationDelay: '1.5s' }} />
-      </div>
-
-      <div className="relative z-10 flex items-center justify-center pt-20 px-4 min-h-screen">
-        <div className="w-full max-w-7xl h-[calc(100vh-8rem)]">
+    <div className="h-screen bg-base-200">
+      <div className="flex items-center justify-center pt-20 px-4">
+        <div className="bg-base-100 rounded-lg shadow-cl w-full max-w-6xl h-[calc(100vh-8rem)]">
           {/* Connection Status Indicator */}
           {!isConnected && !isLoading && (
-            <div className="mb-4 glass-strong text-warning px-6 py-3 text-sm text-center rounded-2xl shadow-macos animate-slide-up">
-              <div className="flex items-center justify-center gap-2">
-                <div className="w-2 h-2 bg-warning rounded-full animate-pulse" />
-                Chat service disconnected. Trying to reconnect...
-              </div>
+            <div className="bg-warning text-warning-content px-4 py-2 text-sm text-center">
+              Chat service disconnected. Trying to reconnect...
             </div>
           )}
           
-          {/* Main Chat Container */}
-          <div className="card-macos-strong h-full overflow-hidden animate-scale-in">
-            <div className="flex h-full">
-              <Sidebar 
-                onSelectUser={handleSelectUser} 
-                onSelectGroup={handleSelectGroup}
-                selectedUserId={selectedUser?._id}
-                selectedGroupId={selectedGroup?.id}
-                activeTab={activeTab}
-                onTabChange={handleTabChange}
-              />
+          <div className="flex h-full rounded-lg overflow-hidden">
+            <Sidebar 
+              onSelectUser={handleSelectUser} 
+              onSelectGroup={handleSelectGroup}
+              selectedUserId={selectedUser?._id}
+              selectedGroupId={selectedGroup?.id}
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+            />
 
-              {!selectedUser && !selectedGroup ? (
-                <NoChatSelected />
-              ) : selectedGroup ? (
-                <GroupChatContainer
-                  selectedGroup={selectedGroup}
-                  onClose={handleCloseChat}
-                />
-              ) : (
-                <ChatContainer
-                  selectedUser={selectedUser}
-                  onClose={handleCloseChat}
-                />
-              )}
-            </div>
+            {!selectedUser && !selectedGroup ? (
+              <NoChatSelected />
+            ) : selectedGroup ? (
+              <GroupChatContainer
+                selectedGroup={selectedGroup}
+                onClose={handleCloseChat}
+              />
+            ) : (
+              <ChatContainer
+                selectedUser={selectedUser}
+                onClose={handleCloseChat}
+              />
+            )}
           </div>
         </div>
       </div>
