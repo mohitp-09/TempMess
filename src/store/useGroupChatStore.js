@@ -1,12 +1,13 @@
 import { create } from "zustand";
 import groupWebSocketService from "../lib/groupWebSocket";
 import { getCurrentUserFromToken } from "../lib/jwtUtils";
-import { getUserGroups, getGroupMessages } from "../lib/groupApi";
+import { getUserGroups, getGroupMessages, getGroupMembers } from "../lib/groupApi";
 
 const useGroupChatStore = create((set, get) => ({
   // State
   groupMessages: {},
   groups: [],
+  groupMembers: {},
   selectedGroup: null,
   isConnected: false,
   isLoading: false,
@@ -33,11 +34,11 @@ const useGroupChatStore = create((set, get) => ({
       set({ isConnected: true, isLoading: false });
       console.log('✅ Group WebSocket ready');
       
-      // Load user's groups - TEMPORARILY DISABLED TO AVOID OAUTH REDIRECT
+      // Load user's groups
       try {
         await get().loadUserGroups();
       } catch (error) {
-        console.warn('⚠️ Failed to load groups, continuing without them:', error.message);
+        console.warn('⚠️ Failed to load groups:', error.message);
       }
       
       return true;
@@ -55,7 +56,7 @@ const useGroupChatStore = create((set, get) => ({
     set({ isConnected: false });
   },
 
-  // Load user's groups - WITH ERROR HANDLING FOR OAUTH REDIRECT
+  // Load user's groups - UPDATED TO USE CORRECT ENDPOINT
   loadUserGroups: async () => {
     try {
       console.log('🔄 Loading user groups...');
@@ -80,6 +81,27 @@ const useGroupChatStore = create((set, get) => ({
       
       // Set empty array on error
       set({ groups: [] });
+      return [];
+    }
+  },
+
+  // Load group members - NEW FUNCTION
+  loadGroupMembers: async (groupId) => {
+    try {
+      console.log('🔄 Loading group members for:', groupId);
+      const members = await getGroupMembers(groupId);
+      console.log('📥 Loaded group members:', members);
+      
+      set((state) => ({
+        groupMembers: {
+          ...state.groupMembers,
+          [groupId]: members
+        }
+      }));
+      
+      return members;
+    } catch (error) {
+      console.error('❌ Failed to load group members:', error);
       return [];
     }
   },
@@ -148,7 +170,7 @@ const useGroupChatStore = create((set, get) => ({
     }
   },
 
-  // Select group and load their old messages
+  // Select group and load their old messages and members
   selectGroup: async (group) => {
     set({ selectedGroup: group });
     
@@ -156,6 +178,9 @@ const useGroupChatStore = create((set, get) => ({
     if (group.id) {
       groupWebSocketService.subscribeToGroup(group.id);
     }
+    
+    // Load group members
+    await get().loadGroupMembers(group.id);
     
     // Check if we already have messages for this group
     const { groupMessages } = get();
@@ -260,6 +285,12 @@ const useGroupChatStore = create((set, get) => ({
   // Get unread count for group (placeholder)
   getUnreadCountForGroup: (groupId) => {
     return 0;
+  },
+
+  // Get group members
+  getGroupMembers: (groupId) => {
+    const { groupMembers } = get();
+    return groupMembers[groupId] || [];
   },
 
   // Check if old messages are loading

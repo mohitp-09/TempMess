@@ -43,7 +43,7 @@ groupApi.interceptors.response.use(
   }
 );
 
-// Create a new group - ADJUSTED TO MATCH YOUR CONTROLLER
+// Create a new group - MATCHES YOUR CONTROLLER: POST /create
 export const createGroup = async (groupData) => {
   try {
     console.log('📤 Creating group with data:', groupData);
@@ -63,35 +63,119 @@ export const createGroup = async (groupData) => {
   }
 };
 
-// Get user's groups - SIMPLIFIED TO AVOID OAUTH REDIRECT
+// Get user's groups - MATCHES YOUR CONTROLLER: GET /getGroups
 export const getUserGroups = async () => {
   try {
     console.log('📤 Fetching user groups...');
     
-    // For now, return empty array to avoid OAuth redirect
-    // You'll need to implement this endpoint properly in your backend
-    console.log('⚠️ getUserGroups temporarily disabled to avoid OAuth redirect');
-    return [];
+    const response = await groupApi.get('/getGroups');
+    console.log('✅ User groups fetched:', response.data);
     
-    // Uncomment when your backend endpoint is fixed:
-    // const response = await groupApi.get('/user/groups');
-    // return response.data;
+    // Handle different response formats from backend
+    let groups = response.data;
+    
+    // If response.data is an object with a groups array
+    if (groups && typeof groups === 'object' && groups.groups) {
+      groups = groups.groups;
+    }
+    
+    // If response.data is an object with a data array
+    if (groups && typeof groups === 'object' && groups.data) {
+      groups = groups.data;
+    }
+    
+    // Ensure we return an array
+    if (!Array.isArray(groups)) {
+      console.warn('Groups response is not an array:', groups);
+      return [];
+    }
+    
+    // Transform backend group data to match frontend format
+    return groups.map(group => ({
+      id: group.id?.toString() || group._id,
+      name: group.groupName || group.name || 'Unnamed Group',
+      createdBy: group.createdBy || 'Unknown',
+      members: group.members || [],
+      createdAt: group.createdAt || new Date().toISOString()
+    }));
   } catch (error) {
     console.error('❌ Failed to fetch user groups:', error);
     return []; // Return empty array if API fails
   }
 };
 
-// Get group messages - ADJUSTED TO MATCH YOUR CONTROLLER
+// Get group messages - MATCHES YOUR CONTROLLER: GET /{groupId}
 export const getGroupMessages = async (groupId) => {
   try {
     console.log('📤 Fetching messages for group:', groupId);
     
     const response = await groupApi.get(`/${groupId}`);
     console.log('✅ Group messages fetched:', response.data);
-    return response.data;
+    
+    // Handle different response formats from backend
+    let messages = response.data;
+    
+    // If response.data is an object with a messages array
+    if (messages && typeof messages === 'object' && messages.messages) {
+      messages = messages.messages;
+    }
+    
+    // If response.data is an object with a data array
+    if (messages && typeof messages === 'object' && messages.data) {
+      messages = messages.data;
+    }
+    
+    // Ensure we return an array
+    if (!Array.isArray(messages)) {
+      console.warn('Messages response is not an array:', messages);
+      return [];
+    }
+    
+    return messages;
   } catch (error) {
     console.error('❌ Failed to fetch group messages:', error);
+    return []; // Return empty array if API fails
+  }
+};
+
+// Get group members - MATCHES YOUR CONTROLLER: GET /getGroupMembers/{groupId}
+export const getGroupMembers = async (groupId) => {
+  try {
+    console.log('📤 Fetching members for group:', groupId);
+    
+    const response = await groupApi.get(`/getGroupMembers/${groupId}`);
+    console.log('✅ Group members fetched:', response.data);
+    
+    // Handle different response formats from backend
+    let members = response.data;
+    
+    // If response.data is an object with a members array
+    if (members && typeof members === 'object' && members.members) {
+      members = members.members;
+    }
+    
+    // If response.data is an object with a data array
+    if (members && typeof members === 'object' && members.data) {
+      members = members.data;
+    }
+    
+    // Ensure we return an array
+    if (!Array.isArray(members)) {
+      console.warn('Members response is not an array:', members);
+      return [];
+    }
+    
+    // Transform backend member data to match frontend format
+    return members.map(member => ({
+      id: member.id?.toString() || member._id,
+      username: member.username || member.name || 'Unknown User',
+      fullName: member.fullName || member.username || 'Unknown User',
+      profilePic: member.profilePic || member.profilePicture || '/avatar.png',
+      isOnline: member.isOnline || member.onlineStatus || false,
+      email: member.email || ''
+    }));
+  } catch (error) {
+    console.error('❌ Failed to fetch group members:', error);
     return []; // Return empty array if API fails
   }
 };

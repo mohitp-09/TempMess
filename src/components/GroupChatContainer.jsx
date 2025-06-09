@@ -4,7 +4,7 @@ import MessageInput from "./MessageInput";
 import { formatMessageTime, getDateLabel } from "../lib/utils";
 import { useGroupChatStore } from "../store/useGroupChatStore";
 import { getCurrentUserFromToken } from "../lib/jwtUtils";
-import { MessageSquare, Sparkles, Loader2, Check, CheckCheck, Users } from "lucide-react";
+import { MessageSquare, Sparkles, Loader2, Check, CheckCheck, Users, UserPlus } from "lucide-react";
 
 const GroupChatContainer = ({ selectedGroup, onClose }) => {
   const messageEndRef = useRef(null);
@@ -12,10 +12,13 @@ const GroupChatContainer = ({ selectedGroup, onClose }) => {
     getMessagesForGroup, 
     sendGroupMessage, 
     isLoading,
-    isLoadingOldMessages 
+    isLoadingOldMessages,
+    getGroupMembers
   } = useGroupChatStore();
   
   const [messages, setMessages] = useState([]);
+  const [groupMembers, setGroupMembers] = useState([]);
+  const [showMembers, setShowMembers] = useState(false);
   const authUser = getCurrentUserFromToken();
 
   // Get messages for the selected group
@@ -23,8 +26,12 @@ const GroupChatContainer = ({ selectedGroup, onClose }) => {
     if (selectedGroup) {
       const groupMessages = getMessagesForGroup(selectedGroup.id);
       setMessages(groupMessages);
+      
+      // Get group members
+      const members = getGroupMembers(selectedGroup.id);
+      setGroupMembers(members);
     }
-  }, [selectedGroup, getMessagesForGroup]);
+  }, [selectedGroup, getMessagesForGroup, getGroupMembers]);
 
   // Subscribe to message updates for this group
   useEffect(() => {
@@ -33,10 +40,14 @@ const GroupChatContainer = ({ selectedGroup, onClose }) => {
     const interval = setInterval(() => {
       const groupMessages = getMessagesForGroup(selectedGroup.id);
       setMessages(groupMessages);
+      
+      // Update members as well
+      const members = getGroupMembers(selectedGroup.id);
+      setGroupMembers(members);
     }, 1000); // Check for new messages every second
 
     return () => clearInterval(interval);
-  }, [selectedGroup, getMessagesForGroup]);
+  }, [selectedGroup, getMessagesForGroup, getGroupMembers]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -77,9 +88,9 @@ const GroupChatContainer = ({ selectedGroup, onClose }) => {
     
     if (message.isTemp) {
       return {
-        icon: null,
+        icon: <Loader2 className="size-3 animate-spin" />,
         text: "Sending...",
-        className: "text-white/60 animate-pulse"
+        className: "text-white/60"
       };
     }
     
@@ -91,9 +102,9 @@ const GroupChatContainer = ({ selectedGroup, onClose }) => {
     };
   };
 
-  // Create a user object for the header
+  // Create a user object for the header with member count
   const groupAsUser = {
-    fullName: selectedGroup.name,
+    fullName: `${selectedGroup.name} (${groupMembers.length} members)`,
     profilePic: '/avatar.png', // Default group avatar
     isOnline: true, // Groups are always "online"
     username: selectedGroup.name
@@ -102,6 +113,54 @@ const GroupChatContainer = ({ selectedGroup, onClose }) => {
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-base-100">
       <ChatHeader user={groupAsUser} onClose={onClose} isGroup={true} />
+
+      {/* Group Members Bar */}
+      <div className="px-4 py-2 border-b border-base-300/50 bg-base-50">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setShowMembers(!showMembers)}
+            className="flex items-center gap-2 text-sm text-base-content/70 hover:text-base-content transition-colors"
+          >
+            <Users className="size-4" />
+            <span>{groupMembers.length} members</span>
+            <span className={`transition-transform ${showMembers ? 'rotate-180' : ''}`}>
+              ▼
+            </span>
+          </button>
+          
+          <button className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors">
+            <UserPlus className="size-4" />
+            <span>Add Member</span>
+          </button>
+        </div>
+        
+        {/* Members List */}
+        {showMembers && (
+          <div className="mt-3 flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+            {groupMembers.map((member) => (
+              <div
+                key={member.id}
+                className="flex items-center gap-2 bg-base-200/50 rounded-full px-3 py-1 text-sm"
+              >
+                <div className="size-6 rounded-full overflow-hidden">
+                  <img
+                    src={member.profilePic}
+                    alt={member.fullName}
+                    className="size-6 object-cover"
+                    onError={(e) => {
+                      e.target.src = '/avatar.png';
+                    }}
+                  />
+                </div>
+                <span className="text-base-content/80">{member.fullName}</span>
+                {member.username === authUser?.username && (
+                  <span className="text-xs text-primary">(You)</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-1 bg-gradient-to-b from-base-100 to-base-50">
         {isLoadingMessages ? (
@@ -150,10 +209,16 @@ const GroupChatContainer = ({ selectedGroup, onClose }) => {
                 </p>
               </div>
 
-              {/* Quick action tip */}
+              {/* Group info */}
               <div className="mt-8 p-4 bg-primary/5 rounded-xl border border-primary/20 backdrop-blur-sm">
-                <p className="text-sm text-primary/80 font-medium">
-                  💡 Everyone in the group will see your messages
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="size-4 text-primary" />
+                  <p className="text-sm text-primary/80 font-medium">
+                    {groupMembers.length} members in this group
+                  </p>
+                </div>
+                <p className="text-xs text-primary/60">
+                  Everyone will see your messages
                 </p>
               </div>
             </div>
