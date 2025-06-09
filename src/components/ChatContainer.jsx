@@ -4,7 +4,7 @@ import MessageInput from "./MessageInput";
 import { formatMessageTime, getDateLabel } from "../lib/utils";
 import { useChatStore } from "../store/useChatStore";
 import { getCurrentUserFromToken } from "../lib/jwtUtils";
-import { MessageSquare, Sparkles, Loader2, Check, CheckCheck } from "lucide-react";
+import { MessageSquare, Sparkles, Loader2, Check, CheckCheck, CheckCircle } from "lucide-react";
 
 const ChatContainer = ({ selectedUser, onClose }) => {
   const messageEndRef = useRef(null);
@@ -13,7 +13,8 @@ const ChatContainer = ({ selectedUser, onClose }) => {
     sendMessage, 
     isLoading,
     currentUser,
-    isLoadingOldMessages 
+    isLoadingOldMessages,
+    getMessageStatus
   } = useChatStore();
   
   const [messages, setMessages] = useState([]);
@@ -72,49 +73,46 @@ const ChatContainer = ({ selectedUser, onClose }) => {
     return isSameSender && isWithinTimeLimit;
   };
 
-  // Function to get message status with proper icons
-  const getMessageStatus = (message, isOwnMessage) => {
+  // Function to get message status with proper icons and real-time updates
+  const getMessageStatusDisplay = (message, isOwnMessage) => {
     if (!isOwnMessage) return null;
     
     if (message.isTemp) {
       return {
-        icon: null,
+        icon: <Loader2 className="size-3 animate-spin" />,
         text: "Sending...",
-        className: "text-white/60 animate-pulse"
+        className: "text-white/60"
       };
     }
     
-    if (message.isOld) {
-      // For old messages, assume they were delivered
-      return {
-        icon: <CheckCheck className="size-3" />,
-        text: "Delivered",
-        className: "text-white/70"
-      };
-    }
+    // Get real-time status from store
+    const status = message.status || getMessageStatus(message._id) || 'SENT';
     
-    // For new messages, we'll simulate different states
-    // In a real app, you'd get this from your backend
-    const messageAge = Date.now() - new Date(message.createdAt).getTime();
-    
-    if (messageAge < 5000) { // Less than 5 seconds - just sent
-      return {
-        icon: <Check className="size-3" />,
-        text: "Sent",
-        className: "text-white/70"
-      };
-    } else if (messageAge < 30000) { // Less than 30 seconds - delivered
-      return {
-        icon: <CheckCheck className="size-3" />,
-        text: "Delivered",
-        className: "text-white/70"
-      };
-    } else { // Older - seen
-      return {
-        icon: <CheckCheck className="size-3" />,
-        text: "Seen",
-        className: "text-blue-400" // Blue ticks for seen messages
-      };
+    switch (status) {
+      case 'SENT':
+        return {
+          icon: <Check className="size-3" />,
+          text: "Sent",
+          className: "text-white/70"
+        };
+      case 'DELIVERED':
+        return {
+          icon: <CheckCheck className="size-3" />,
+          text: "Delivered",
+          className: "text-white/70"
+        };
+      case 'READ':
+        return {
+          icon: <CheckCheck className="size-3" />,
+          text: "Read",
+          className: "text-blue-400" // Blue for read messages
+        };
+      default:
+        return {
+          icon: <Check className="size-3" />,
+          text: "Sent",
+          className: "text-white/70"
+        };
     }
   };
 
@@ -189,7 +187,7 @@ const ChatContainer = ({ selectedUser, onClose }) => {
             const isConsecutive = isConsecutiveMessage(message, prevMessage);
             const isLastInGroup = !nextMessage || !isConsecutiveMessage(nextMessage, message);
 
-            const messageStatus = getMessageStatus(message, isOwnMessage);
+            const messageStatus = getMessageStatusDisplay(message, isOwnMessage);
 
             return (
               <div key={message._id}>

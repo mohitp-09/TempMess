@@ -6,6 +6,7 @@ class WebSocketService {
     this.stompClient = null;
     this.connected = false;
     this.messageHandlers = new Map();
+    this.readReceiptHandlers = new Map();
     this.currentUsername = null;
   }
 
@@ -30,6 +31,9 @@ class WebSocketService {
             
             // Subscribe to private messages immediately
             this.subscribeToPrivateMessages(username);
+            
+            // Subscribe to read receipts
+            this.subscribeToReadReceipts(username);
             
             resolve(frame);
           },
@@ -76,6 +80,36 @@ class WebSocketService {
     }
   }
 
+  subscribeToReadReceipts(username) {
+    if (!this.stompClient || !this.connected) {
+      console.warn('⚠️ Cannot subscribe to read receipts: not connected');
+      return;
+    }
+
+    try {
+      const destination = `/user/${username}/private/read-receipts`;
+      console.log('📡 Subscribing to read receipts:', destination);
+      
+      this.stompClient.subscribe(destination, (message) => {
+        try {
+          const readReceiptData = JSON.parse(message.body);
+          console.log('📨 Received read receipt:', readReceiptData);
+          
+          // Notify all read receipt handlers
+          this.readReceiptHandlers.forEach((handler) => {
+            handler(readReceiptData);
+          });
+        } catch (error) {
+          console.error('❌ Error parsing read receipt:', error);
+        }
+      });
+      
+      console.log('✅ Subscribed to read receipts');
+    } catch (error) {
+      console.error('❌ Read receipt subscription failed:', error);
+    }
+  }
+
   sendPrivateMessage(sender, receiver, message) {
     if (!this.stompClient || !this.connected) {
       throw new Error('Not connected to WebSocket');
@@ -92,12 +126,34 @@ class WebSocketService {
     console.log('✅ Message sent');
   }
 
+  markAsRead(messageId) {
+    if (!this.stompClient || !this.connected) {
+      throw new Error('Not connected to WebSocket');
+    }
+
+    const payload = {
+      messageId: messageId
+    };
+
+    console.log('📤 Marking as read:', payload);
+    this.stompClient.send('/app/markAsRead', {}, JSON.stringify(payload));
+    console.log('✅ Read receipt sent');
+  }
+
   addMessageHandler(id, handler) {
     this.messageHandlers.set(id, handler);
   }
 
   removeMessageHandler(id) {
     this.messageHandlers.delete(id);
+  }
+
+  addReadReceiptHandler(id, handler) {
+    this.readReceiptHandlers.set(id, handler);
+  }
+
+  removeReadReceiptHandler(id) {
+    this.readReceiptHandlers.delete(id);
   }
 
   disconnect() {

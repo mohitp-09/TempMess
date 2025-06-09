@@ -6,6 +6,7 @@ import { getOldChatMessages } from "../lib/api";
 const useChatStore = create((set, get) => ({
   // State
   messages: {},
+  messageStatuses: {}, // Track message statuses by message ID
   selectedUser: null,
   isConnected: false,
   isLoading: false,
@@ -28,6 +29,10 @@ const useChatStore = create((set, get) => ({
       webSocketService.addMessageHandler('chatStore', (messageData) => {
         get().handleIncomingMessage(messageData);
       });
+
+      webSocketService.addReadReceiptHandler('chatStore', (readReceiptData) => {
+        get().handleReadReceipt(readReceiptData);
+      });
       
       set({ isConnected: true, isLoading: false });
       console.log('✅ WebSocket ready');
@@ -42,6 +47,7 @@ const useChatStore = create((set, get) => ({
   // Disconnect
   disconnectWebSocket: () => {
     webSocketService.removeMessageHandler('chatStore');
+    webSocketService.removeReadReceiptHandler('chatStore');
     webSocketService.disconnect();
     set({ isConnected: false });
   },
@@ -109,6 +115,9 @@ const useChatStore = create((set, get) => ({
       // Load old messages if we don't have any
       await get().loadOldMessages(user.username);
     }
+
+    // Mark all messages from this user as read
+    get().markConversationAsRead(user.username);
   },
 
   // Send message
@@ -125,14 +134,18 @@ const useChatStore = create((set, get) => ({
     }
 
     try {
-      // Add to local state immediately
+      // Generate a unique message ID
+      const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Add to local state immediately with SENT status
       const tempMessage = {
-        _id: `temp-${Date.now()}`,
+        _id: messageId,
         senderId: currentUser.username,
         receiverId: selectedUser.username,
         text: text,
         createdAt: new Date().toISOString(),
-        isTemp: true
+        isTemp: true,
+        status: 'SENT'
       };
 
       set((state) => ({
@@ -142,6 +155,10 @@ const useChatStore = create((set, get) => ({
             ...(state.messages[selectedUser.username] || []),
             tempMessage
           ]
+        },
+        messageStatuses: {
+          ...state.messageStatuses,
+          [messageId]: 'SENT'
         }
       }));
 
@@ -151,6 +168,16 @@ const useChatStore = create((set, get) => ({
         selectedUser.username,
         text
       );
+
+      // Simulate delivery status after a short delay
+      setTimeout(() => {
+        set((state) => ({
+          messageStatuses: {
+            ...state.messageStatuses,
+            [messageId]: 'DELIVERED'
+          }
+        }));
+      }, 1000);
 
       return true;
     } catch (error) {
@@ -169,11 +196,12 @@ const useChatStore = create((set, get) => ({
       : messageData.sender;
 
     const formattedMessage = {
-      _id: `ws-${Date.now()}-${Math.random()}`,
+      _id: messageData.messageId || `ws-${Date.now()}-${Math.random()}`,
       senderId: messageData.sender,
       receiverId: messageData.receiver,
       text: messageData.message,
-      createdAt: new Date().toISOString()
+      createdAt: messageData.timestamp || new Date().toISOString(),
+      status: 'DELIVERED'
     };
 
     set((state) => {
@@ -188,8 +216,93 @@ const useChatStore = create((set, get) => ({
         messages: {
           ...state.messages,
           [otherUser]: [...filtered, formattedMessage]
+        },
+        messageStatuses: {
+          ...state.messageStatuses,
+          [formattedMessage._id]: 'DELIVERED'
         }
       };
+    });
+
+    // If this is a message from someone else and we're currently chatting with them, mark as read
+    const { selectedUser } = get();
+    if (messageData.sender !== currentUser.username && selectedUser?.username === messageData.sender) {
+      setTimeout(() => {
+        get().markMessageAsRead(formattedMessage._id);
+      }, 500); // Small delay to simulate reading
+    }
+  },
+
+  // Handle read receipts
+  handleReadReceipt: (readReceiptData) => {
+    console.log('📨 Processing read receipt:', readReceiptData);
+    
+    set((state) => ({
+      messageStatuses: {
+        ...state.messageStatuses,
+        [readReceiptData.messageId]: 'READ'
+      }
+    }));
+
+    // Update the message status in the messages array as well
+    const { messages } = get();
+    Object.keys(messages).forEach(username => {
+      const userMessages = messages[username];
+      const messageIndex = userMessages.findIndex(msg => msg._id === readReceiptData.messageId);
+      
+      if (messageIndex !== -1) {
+        set((state) => ({
+          messages: {
+            ...state.messages,
+            [username]: state.messages[username].map(msg => 
+              msg._id === readReceiptData.messageId 
+                ? { ...msg, status: 'READ' }
+                : msg
+            )
+          }
+        }));
+      }
+    });
+  },
+
+  // Mark a specific message as read
+  markMessageAsRead: (messageId) => {
+    if (!webSocketService.isConnected()) {
+      console.error('❌ Cannot mark as read: not connected');
+      return;
+    }
+
+    try {
+      webSocketService.markAsRead(messageId);
+      
+      // Update local status immediately
+      set((state) => ({
+        messageStatuses: {
+          ...state.messageStatuses,
+          [messageId]: 'READ'
+        }
+      }));
+    } catch (error) {
+      console.error('❌ Failed to mark message as read:', error);
+    }
+  },
+
+  // Mark entire conversation as read
+  markConversationAsRead: (username) => {
+    const { messages, currentUser } = get();
+    const userMessages = messages[username] || [];
+    
+    // Find all unread messages from the other user
+    const unreadMessages = userMessages.filter(msg => 
+      msg.senderId !== currentUser?.username && 
+      (!msg.status || msg.status !== 'READ')
+    );
+
+    // Mark each unread message as read
+    unreadMessages.forEach(msg => {
+      if (msg._id && !msg.isTemp) {
+        get().markMessageAsRead(msg._id);
+      }
     });
   },
 
@@ -205,9 +318,21 @@ const useChatStore = create((set, get) => ({
     return messages.length > 0 ? messages[messages.length - 1] : null;
   },
 
-  // Get unread count (placeholder)
+  // Get unread count
   getUnreadCountForUser: (username) => {
-    return 0;
+    const { messages, currentUser } = get();
+    const userMessages = messages[username] || [];
+    
+    return userMessages.filter(msg => 
+      msg.senderId !== currentUser?.username && 
+      (!msg.status || msg.status !== 'read')
+    ).length;
+  },
+
+  // Get message status
+  getMessageStatus: (messageId) => {
+    const { messageStatuses } = get();
+    return messageStatuses[messageId] || 'SENT';
   },
 
   // Check if old messages are loading
