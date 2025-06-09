@@ -52,6 +52,7 @@ const GroupInfoPanel = ({ group, isOpen, onClose }) => {
 
   // Safe member name extraction
   const getMemberName = (member) => {
+    if (!member) return 'Unknown User';
     if (typeof member === 'string') return member;
     if (typeof member === 'object' && member !== null) {
       return member.fullName || member.username || member.name || 'Unknown User';
@@ -60,11 +61,29 @@ const GroupInfoPanel = ({ group, isOpen, onClose }) => {
   };
 
   const getMemberUsername = (member) => {
+    if (!member) return 'unknown';
     if (typeof member === 'string') return member;
     if (typeof member === 'object' && member !== null) {
       return member.username || member.name || 'unknown';
     }
     return 'unknown';
+  };
+
+  const getMemberProfilePic = (member) => {
+    if (!member || typeof member !== 'object') return null;
+    return member.profilePic || member.profilePicture || null;
+  };
+
+  // Safe member names for description
+  const getAllMemberNames = () => {
+    if (!Array.isArray(members) || members.length === 0) {
+      return 'No members';
+    }
+    
+    return members
+      .map(member => getMemberName(member))
+      .filter(name => name && name !== 'Unknown User')
+      .join(', ');
   };
 
   const visibleMembers = showAllMembers ? members : members.slice(0, 6);
@@ -127,10 +146,7 @@ const GroupInfoPanel = ({ group, isOpen, onClose }) => {
                 
                 {/* Member Names */}
                 <p className="text-base-content/70 text-sm leading-relaxed max-w-md">
-                  {Array.isArray(members) && members.length > 0 
-                    ? members.map(member => getMemberName(member)).join(', ')
-                    : 'No members'
-                  }
+                  {getAllMemberNames()}
                 </p>
               </div>
 
@@ -263,15 +279,16 @@ const GroupInfoPanel = ({ group, isOpen, onClose }) => {
                 {visibleMembers.map((member, index) => {
                   const memberName = getMemberName(member);
                   const memberUsername = getMemberUsername(member);
+                  const memberProfilePic = getMemberProfilePic(member);
                   const isCurrentUser = memberUsername === currentUser?.username;
                   const isAdmin = index < 4; // Mock: first 4 members are admins
                   
                   return (
-                    <div key={member?.id || member?.username || index} className="flex items-center gap-3 p-2 rounded-lg hover:bg-base-50 transition-colors group">
+                    <div key={member?.id || memberUsername || index} className="flex items-center gap-3 p-2 rounded-lg hover:bg-base-50 transition-colors group">
                       <div className="size-12 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
-                        {(member?.profilePic || member?.profilePicture) ? (
+                        {memberProfilePic ? (
                           <img 
-                            src={member.profilePic || member.profilePicture} 
+                            src={memberProfilePic} 
                             alt={memberName} 
                             className="size-12 object-cover"
                             onError={(e) => {
@@ -280,7 +297,7 @@ const GroupInfoPanel = ({ group, isOpen, onClose }) => {
                             }}
                           />
                         ) : null}
-                        <div className={`size-12 rounded-full bg-primary/10 flex items-center justify-center ${(member?.profilePic || member?.profilePicture) ? 'hidden' : 'flex'}`}>
+                        <div className={`size-12 rounded-full bg-primary/10 flex items-center justify-center ${memberProfilePic ? 'hidden' : 'flex'}`}>
                           <span className="text-primary font-semibold">
                             {memberName.charAt(0).toUpperCase()}
                           </span>
