@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { getCurrentUserFromToken, isTokenExpired } from "../lib/jwtUtils";
+import encryptionService from "../lib/encryption";
 
 const useAuthStore = create((set, get) => ({
   isAuthenticated: (() => {
@@ -25,7 +26,7 @@ const useAuthStore = create((set, get) => ({
     return null;
   })(),
   
-  login: (userData) => {
+  login: async (userData) => {
     // If userData contains a token, decode it to get user info
     let userInfo = userData;
     if (userData && userData.token) {
@@ -37,10 +38,21 @@ const useAuthStore = create((set, get) => ({
       isAuthenticated: true,
       user: userInfo 
     });
+
+    // Initialize encryption service for the logged-in user
+    try {
+      await encryptionService.initialize();
+      console.log('🔐 Encryption initialized for user');
+    } catch (error) {
+      console.error('❌ Failed to initialize encryption:', error);
+    }
   },
   
   logout: () => {
     console.log('Logging out user...');
+    
+    // Clear encryption keys
+    encryptionService.clearKeys();
     
     // Clear all auth-related data from localStorage
     localStorage.removeItem('token');

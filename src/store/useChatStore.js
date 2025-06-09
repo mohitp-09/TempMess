@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import webSocketService from "../lib/websocket";
 import { getCurrentUserFromToken } from "../lib/jwtUtils";
-import { getOldChatMessages } from "../lib/api";
+import { getOldChatMessages, getUserPublicKey, storeUserPublicKey } from "../lib/api";
+import encryptionService from "../lib/encryption";
 
 const useChatStore = create((set, get) => ({
   // State
@@ -13,7 +14,7 @@ const useChatStore = create((set, get) => ({
   currentUser: null,
   loadingOldMessages: {},
 
-  // Initialize WebSocket
+  // Initialize WebSocket and encryption
   initializeWebSocket: async () => {
     const currentUser = getCurrentUserFromToken();
     if (!currentUser?.username) {
@@ -23,6 +24,19 @@ const useChatStore = create((set, get) => ({
 
     try {
       set({ currentUser, isLoading: true });
+      
+      // Initialize encryption service
+      console.log('🔐 Initializing encryption...');
+      await encryptionService.initialize();
+      
+      // Store user's public key on server
+      try {
+        const publicKeyJwk = await encryptionService.getPublicKeyJwk();
+        await storeUserPublicKey(publicKeyJwk);
+        console.log('🔐 Public key stored on server');
+      } catch (error) {
+        console.warn('⚠️ Failed to store public key on server:', error);
+      }
       
       await webSocketService.connect(currentUser.username);
       
@@ -35,7 +49,7 @@ const useChatStore = create((set, get) => ({
       });
       
       set({ isConnected: true, isLoading: false });
-      console.log('✅ WebSocket ready');
+      console.log('✅ WebSocket and encryption ready');
       return true;
     } catch (error) {
       console.error('❌ WebSocket failed:', error);
@@ -52,7 +66,7 @@ const useChatStore = create((set, get) => ({
     set({ isConnected: false });
   },
 
-  // Load old messages for a user
+  // Load old messages for a user and decrypt them
   loadOldMessages: async (username) => {
     const { loadingOldMessages } = get();
     
@@ -74,8 +88,36 @@ const useChatStore = create((set, get) => ({
       
       console.log('📥 Loaded old messages:', oldMessages.length);
       
+      // Decrypt messages
+      const decryptedMessages = await Promise.all(
+        oldMessages.map(async (msg) => {
+          if (msg.isEncrypted && msg.text) {
+            try {
+              // Try to parse as encrypted data
+              const encryptedData = JSON.parse(msg.text);
+              if (encryptedData.encryptedMessage && encryptedData.encryptedKey) {
+                const decryptedText = await encryptionService.decryptMessage(encryptedData);
+                return {
+                  ...msg,
+                  text: decryptedText,
+                  isEncrypted: false // Mark as decrypted
+                };
+              }
+            } catch (error) {
+              console.warn('⚠️ Failed to decrypt message:', error);
+              // Return original message if decryption fails
+              return {
+                ...msg,
+                text: '[Message could not be decrypted]'
+              };
+            }
+          }
+          return msg;
+        })
+      );
+
       // Sort messages by timestamp (oldest first)
-      const sortedMessages = oldMessages.sort((a, b) => 
+      const sortedMessages = decryptedMessages.sort((a, b) => 
         new Date(a.createdAt) - new Date(b.createdAt)
       );
 
@@ -109,6 +151,17 @@ const useChatStore = create((set, get) => ({
   selectUser: async (user) => {
     set({ selectedUser: user });
     
+    // Try to get user's public key for encryption
+    try {
+      const publicKey = await getUserPublicKey(user.username);
+      if (publicKey) {
+        encryptionService.storeContactPublicKey(user.username, publicKey);
+        console.log(`🔐 Stored public key for ${user.username}`);
+      }
+    } catch (error) {
+      console.warn(`⚠️ Failed to get public key for ${user.username}:`, error);
+    }
+    
     // Check if we already have messages for this user
     const { messages } = get();
     if (!messages[user.username] || messages[user.username].length === 0) {
@@ -120,7 +173,7 @@ const useChatStore = create((set, get) => ({
     get().markConversationAsRead(user.username);
   },
 
-  // Send message
+  // Send message (will be encrypted)
   sendMessage: async (text, image = null) => {
     const { selectedUser, currentUser } = get();
     
@@ -137,7 +190,7 @@ const useChatStore = create((set, get) => ({
       // Generate a unique message ID
       const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-      // Add to local state immediately with SENT status
+      // Add to local state immediately with SENT status (unencrypted for display)
       const tempMessage = {
         _id: messageId,
         senderId: currentUser.username,
@@ -162,8 +215,8 @@ const useChatStore = create((set, get) => ({
         }
       }));
 
-      // Send via WebSocket
-      webSocketService.sendPrivateMessage(
+      // Send via WebSocket (will be encrypted in websocket service)
+      await webSocketService.sendPrivateMessage(
         currentUser.username,
         selectedUser.username,
         text
@@ -186,8 +239,8 @@ const useChatStore = create((set, get) => ({
     }
   },
 
-  // Handle incoming messages
-  handleIncomingMessage: (messageData) => {
+  // Handle incoming messages (decrypt them)
+  handleIncomingMessage: async (messageData) => {
     const { currentUser } = get();
     if (!currentUser) return;
 
@@ -195,11 +248,27 @@ const useChatStore = create((set, get) => ({
       ? messageData.receiver 
       : messageData.sender;
 
+    let decryptedText = messageData.message;
+
+    // Decrypt message if it's encrypted
+    if (messageData.isEncrypted && messageData.message) {
+      try {
+        const encryptedData = JSON.parse(messageData.message);
+        if (encryptedData.encryptedMessage && encryptedData.encryptedKey) {
+          decryptedText = await encryptionService.decryptMessage(encryptedData);
+          console.log('🔓 Message decrypted successfully');
+        }
+      } catch (error) {
+        console.error('❌ Failed to decrypt incoming message:', error);
+        decryptedText = '[Message could not be decrypted]';
+      }
+    }
+
     const formattedMessage = {
       _id: messageData.messageId || `ws-${Date.now()}-${Math.random()}`,
       senderId: messageData.sender,
       receiverId: messageData.receiver,
-      text: messageData.message,
+      text: decryptedText,
       createdAt: messageData.timestamp || new Date().toISOString(),
       status: 'DELIVERED'
     };
@@ -295,7 +364,7 @@ const useChatStore = create((set, get) => ({
     // Find all unread messages from the other user
     const unreadMessages = userMessages.filter(msg => 
       msg.senderId !== currentUser?.username && 
-      (!msg.status || msg.status !== 'READ')
+      (!msg.status || msg.status !== 'read')
     );
 
     // Mark each unread message as read

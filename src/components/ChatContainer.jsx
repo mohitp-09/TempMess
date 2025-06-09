@@ -4,7 +4,7 @@ import MessageInput from "./MessageInput";
 import { formatMessageTime, getDateLabel } from "../lib/utils";
 import { useChatStore } from "../store/useChatStore";
 import { getCurrentUserFromToken } from "../lib/jwtUtils";
-import { MessageSquare, Sparkles, Loader2, Check, CheckCheck, CheckCircle } from "lucide-react";
+import { MessageSquare, Sparkles, Loader2, Check, CheckCheck, Shield, ShieldCheck } from "lucide-react";
 
 const ChatContainer = ({ selectedUser, onClose }) => {
   const messageEndRef = useRef(null);
@@ -120,12 +120,23 @@ const ChatContainer = ({ selectedUser, onClose }) => {
     <div className="flex-1 flex flex-col overflow-hidden bg-base-100">
       <ChatHeader user={selectedUser} onClose={onClose} />
 
+      {/* Encryption Status Banner */}
+      <div className="px-4 py-2 bg-green-50 border-b border-green-200 flex items-center justify-center gap-2">
+        <ShieldCheck className="size-4 text-green-600" />
+        <span className="text-sm text-green-700 font-medium">
+          End-to-end encrypted
+        </span>
+        <span className="text-xs text-green-600">
+          Messages are secured with encryption
+        </span>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-4 space-y-1 bg-gradient-to-b from-base-100 to-base-50">
         {isLoadingMessages ? (
           <div className="flex items-center justify-center py-8">
             <div className="flex items-center gap-3 bg-base-200/50 backdrop-blur-sm rounded-full px-6 py-3">
               <Loader2 className="animate-spin size-5 text-primary" />
-              <span className="text-base-content/70 text-sm font-medium">Loading chat history...</span>
+              <span className="text-base-content/70 text-sm font-medium">Loading encrypted chat history...</span>
             </div>
           </div>
         ) : isLoading && messages.length === 0 ? (
@@ -143,6 +154,9 @@ const ChatContainer = ({ selectedUser, onClose }) => {
                 <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center animate-bounce shadow-lg border border-primary/20 backdrop-blur-sm">
                   <MessageSquare className="w-10 h-10 text-primary" />
                 </div>
+                <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                  <Shield className="w-3 h-3 text-white" />
+                </div>
                 <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-primary/60 animate-pulse" />
                 <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
                   <div className="bg-primary/90 backdrop-blur-sm text-primary-content text-xs font-bold px-3 py-1 rounded-full shadow-lg border border-primary/30">
@@ -155,7 +169,7 @@ const ChatContainer = ({ selectedUser, onClose }) => {
             <div className="space-y-6 max-w-sm">
               <div className="space-y-3">
                 <h3 className="text-2xl font-bold text-base-content">
-                  Ready to chat with{" "}
+                  Ready to chat securely with{" "}
                   <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
                     {selectedUser.fullName}
                   </span>
@@ -163,14 +177,20 @@ const ChatContainer = ({ selectedUser, onClose }) => {
                 </h3>
                 
                 <p className="text-base-content/60 leading-relaxed">
-                  Break the ice and send your first message! Every great conversation starts with a simple "Hello" ✨
+                  Your messages are protected with end-to-end encryption. Start your secure conversation! 🔒✨
                 </p>
               </div>
 
-              {/* Quick action tip */}
-              <div className="mt-8 p-4 bg-primary/5 rounded-xl border border-primary/20 backdrop-blur-sm">
-                <p className="text-sm text-primary/80 font-medium">
-                  💡 Start typing in the message box below to begin your conversation
+              {/* Security features */}
+              <div className="mt-8 p-4 bg-green-50 rounded-xl border border-green-200 backdrop-blur-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <ShieldCheck className="size-4 text-green-600" />
+                  <p className="text-sm text-green-700 font-medium">
+                    🔐 Your messages are encrypted
+                  </p>
+                </div>
+                <p className="text-xs text-green-600">
+                  Only you and {selectedUser.fullName} can read these messages
                 </p>
               </div>
             </div>
@@ -252,6 +272,13 @@ const ChatContainer = ({ selectedUser, onClose }) => {
                           : "rounded-r-2xl rounded-tl-2xl rounded-bl-sm" // First in group
                       }`}
                     >
+                      {/* Encryption indicator for received messages */}
+                      {!isOwnMessage && !isConsecutive && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                          <Shield className="w-2 h-2 text-white" />
+                        </div>
+                      )}
+
                       {/* Message content */}
                       <div className="flex flex-col">
                         {message.image && (

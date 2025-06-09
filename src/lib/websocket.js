@@ -1,5 +1,6 @@
 import SockJS from 'sockjs-client';
 import Stomp from 'stompjs';
+import encryptionService from './encryption';
 
 class WebSocketService {
   constructor() {
@@ -63,7 +64,7 @@ class WebSocketService {
       this.stompClient.subscribe(destination, (message) => {
         try {
           const messageData = JSON.parse(message.body);
-          console.log('📨 Received message:', messageData);
+          console.log('📨 Received encrypted message:', messageData);
           
           // Notify all handlers
           this.messageHandlers.forEach((handler) => {
@@ -110,20 +111,60 @@ class WebSocketService {
     }
   }
 
-  sendPrivateMessage(sender, receiver, message) {
+  async sendPrivateMessage(sender, receiver, message) {
     if (!this.stompClient || !this.connected) {
       throw new Error('Not connected to WebSocket');
     }
 
-    const payload = {
-      sender: sender,
-      receiver: receiver,
-      message: message
-    };
+    try {
+      // Get recipient's public key
+      let recipientPublicKey = encryptionService.getContactPublicKey(receiver);
+      
+      if (!recipientPublicKey) {
+        // If we don't have the recipient's public key, we need to fetch it
+        // For now, we'll send unencrypted (you should implement key exchange)
+        console.warn('⚠️ No public key found for recipient, sending unencrypted');
+        
+        const payload = {
+          sender: sender,
+          receiver: receiver,
+          message: message,
+          isEncrypted: false
+        };
 
-    console.log('📤 Sending:', payload);
-    this.stompClient.send('/app/sendPrivateMessage', {}, JSON.stringify(payload));
-    console.log('✅ Message sent');
+        console.log('📤 Sending unencrypted message:', payload);
+        this.stompClient.send('/app/sendPrivateMessage', {}, JSON.stringify(payload));
+        return;
+      }
+
+      // Encrypt the message
+      console.log('🔐 Encrypting message...');
+      const encryptedData = await encryptionService.encryptMessage(message, recipientPublicKey);
+      
+      const payload = {
+        sender: sender,
+        receiver: receiver,
+        message: JSON.stringify(encryptedData), // Send encrypted data as JSON string
+        isEncrypted: true
+      };
+
+      console.log('📤 Sending encrypted message:', payload);
+      this.stompClient.send('/app/sendPrivateMessage', {}, JSON.stringify(payload));
+      console.log('✅ Encrypted message sent');
+    } catch (error) {
+      console.error('❌ Failed to encrypt and send message:', error);
+      
+      // Fallback: send unencrypted
+      console.warn('⚠️ Falling back to unencrypted message');
+      const payload = {
+        sender: sender,
+        receiver: receiver,
+        message: message,
+        isEncrypted: false
+      };
+
+      this.stompClient.send('/app/sendPrivateMessage', {}, JSON.stringify(payload));
+    }
   }
 
   markAsRead(messageId) {

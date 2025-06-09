@@ -156,10 +156,36 @@ export const getUserById = async (userId) => {
   }
 };
 
-// Get old chat messages for a specific user
+// Get user's public key for encryption
+export const getUserPublicKey = async (username) => {
+  try {
+    console.log('Fetching public key for user:', username);
+    const response = await api.get(`/api/users/${username}/publickey`);
+    return response.data.publicKey;
+  } catch (error) {
+    console.error('Failed to fetch user public key:', error);
+    throw new Error('Failed to get user public key');
+  }
+};
+
+// Store user's public key on the server
+export const storeUserPublicKey = async (publicKeyJwk) => {
+  try {
+    console.log('Storing public key on server...');
+    const response = await api.post('/api/users/publickey', {
+      publicKey: publicKeyJwk
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to store public key:', error);
+    throw new Error('Failed to store public key');
+  }
+};
+
+// Get old chat messages for a specific user - returns encrypted messages
 export const getOldChatMessages = async (username) => {
   try {
-    console.log('Fetching old chat messages for user:', username);
+    console.log('Fetching old encrypted chat messages for user:', username);
     const response = await api.get(`/oldChat/${username}`);
     console.log('Old chat messages response:', response.data);
     
@@ -170,11 +196,12 @@ export const getOldChatMessages = async (username) => {
       _id: `old-${username}-${index}-${Date.now()}`,
       senderId: msg.sender,
       receiverId: msg.receiver,
-      text: msg.message,
+      text: msg.message, // This will be encrypted data
       image: msg.mediaUrl || null,
       mediaType: msg.mediaType,
       createdAt: msg.timestamp,
-      isOld: true // Flag to identify old messages
+      isOld: true, // Flag to identify old messages
+      isEncrypted: true // Flag to identify encrypted messages
     }));
   } catch (error) {
     console.error('Failed to fetch old chat messages:', error.response?.data || error.message);
