@@ -57,7 +57,7 @@ const useChatStore = create((set, get) => ({
     set({ isConnected: false });
   },
 
-  // Load old messages for a user and decrypt them - FIXED FOR API RESPONSE FORMAT
+  // Load old messages for a user and decrypt them - IMPROVED DECRYPTION LOGIC
   loadOldMessages: async (username) => {
     const { loadingOldMessages } = get();
     
@@ -80,7 +80,7 @@ const useChatStore = create((set, get) => ({
       console.log('📥 Loaded old messages:', oldMessages.length);
       console.log('📥 Sample message structure:', oldMessages[0]);
       
-      // Decrypt messages if they are encrypted - FIXED LOGIC FOR API RESPONSE
+      // Decrypt messages if they are encrypted - IMPROVED LOGIC FOR API RESPONSE
       const decryptedMessages = await Promise.all(
         oldMessages.map(async (msg, index) => {
           // Check if message text exists and is potentially encrypted
@@ -99,12 +99,24 @@ const useChatStore = create((set, get) => ({
             try {
               console.log(`🔓 Attempting to decrypt old message ${index}...`);
               const decryptedText = await encryptionService.decryptMessage(msg.text);
-              console.log(`✅ Old message ${index} decrypted successfully:`, decryptedText.substring(0, 50) + '...');
-              return {
-                ...msg,
-                text: decryptedText,
-                isEncrypted: true // Mark as originally encrypted
-              };
+              
+              // Check if decryption actually succeeded
+              if (decryptedText && !decryptedText.startsWith('[') && !decryptedText.includes('could not be decrypted')) {
+                console.log(`✅ Old message ${index} decrypted successfully:`, decryptedText.substring(0, 50) + '...');
+                return {
+                  ...msg,
+                  text: decryptedText,
+                  isEncrypted: true // Mark as originally encrypted
+                };
+              } else {
+                console.warn(`⚠️ Decryption returned error message for ${index}:`, decryptedText);
+                return {
+                  ...msg,
+                  text: decryptedText || '[Message could not be decrypted]',
+                  isEncrypted: true,
+                  decryptionFailed: true
+                };
+              }
             } catch (error) {
               console.warn(`⚠️ Failed to decrypt old message ${index}:`, error);
               // Return with error message if decryption fails
@@ -164,18 +176,8 @@ const useChatStore = create((set, get) => ({
   selectUser: async (user) => {
     set({ selectedUser: user });
     
-    // Check if we have this user's public key for encryption
-    if (!encryptionService.hasContactKey(user.username)) {
-      console.log(`🔐 No public key found for ${user.username}, simulating key exchange...`);
-      
-      // Simulate key exchange (in real app, this would be done through secure channels)
-      try {
-        await encryptionService.exchangePublicKeys(user.username);
-        console.log(`🔐 Key exchange completed with ${user.username}`);
-      } catch (error) {
-        console.warn(`⚠️ Failed to exchange keys with ${user.username}:`, error);
-      }
-    }
+    // Ensure encryption is ready for this user
+    console.log(`🔐 Setting up encryption for ${user.username}...`);
     
     // Check if we already have messages for this user
     const { messages } = get();
@@ -271,8 +273,16 @@ const useChatStore = create((set, get) => ({
       try {
         console.log('🔓 Attempting to decrypt incoming message...');
         decryptedText = await encryptionService.decryptMessage(messageData.message);
-        isEncrypted = true;
-        console.log('✅ Incoming message decrypted successfully');
+        
+        // Check if decryption actually succeeded
+        if (decryptedText && !decryptedText.startsWith('[') && !decryptedText.includes('could not be decrypted')) {
+          isEncrypted = true;
+          console.log('✅ Incoming message decrypted successfully');
+        } else {
+          console.error('❌ Decryption returned error:', decryptedText);
+          decryptedText = '[Message could not be decrypted]';
+          isEncrypted = true;
+        }
       } catch (error) {
         console.error('❌ Failed to decrypt incoming message:', error);
         decryptedText = '[Message could not be decrypted]';

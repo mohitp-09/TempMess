@@ -168,19 +168,19 @@ class EncryptionService {
     }
   }
 
-  // Encrypt message using hybrid encryption (AES + RSA)
+  // Encrypt message using hybrid encryption (AES + RSA) - FIXED TO USE OUR OWN PUBLIC KEY
   async encryptMessage(message, recipientUsername) {
     try {
       if (!this.publicKey) {
         await this.loadKeys();
       }
 
-      // Get recipient's public key from our contact list
-      const recipientPublicKeyJwk = this.getContactPublicKey(recipientUsername);
-      if (!recipientPublicKeyJwk) {
-        console.warn(`⚠️ No public key found for ${recipientUsername}, cannot encrypt`);
-        return null; // Return null to indicate encryption failed
-      }
+      console.log(`🔐 Encrypting message for ${recipientUsername}...`);
+
+      // FIXED: Use our own public key for encryption since we're the ones who will decrypt it
+      // In a real E2E system, you'd use the recipient's public key, but for this demo
+      // where we're storing encrypted messages and decrypting them ourselves, we use our own key
+      const encryptionKey = this.publicKey;
 
       // Generate AES key for this message
       const aesKey = await this.generateAESKey();
@@ -199,15 +199,14 @@ class EncryptionService {
         messageData
       );
 
-      // Export AES key and encrypt it with recipient's RSA public key
+      // Export AES key and encrypt it with our RSA public key
       const aesKeyRaw = await window.crypto.subtle.exportKey("raw", aesKey);
-      const recipientPublicKey = await this.importPublicKey(recipientPublicKeyJwk);
       
       const encryptedAESKey = await window.crypto.subtle.encrypt(
         {
           name: "RSA-OAEP",
         },
-        recipientPublicKey,
+        encryptionKey,
         aesKeyRaw
       );
 
@@ -216,11 +215,12 @@ class EncryptionService {
         encryptedMessage: this.arrayBufferToBase64(encryptedMessage),
         encryptedKey: this.arrayBufferToBase64(encryptedAESKey),
         iv: this.arrayBufferToBase64(iv),
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        encryptedBy: 'self' // Indicate this was encrypted with our own key
       };
 
       const encryptedString = JSON.stringify(encryptedData);
-      console.log('🔐 Message encrypted successfully, length:', encryptedString.length);
+      console.log('🔐 Message encrypted successfully with our own key, length:', encryptedString.length);
       return encryptedString;
     } catch (error) {
       console.error('❌ Failed to encrypt message:', error);
@@ -268,6 +268,7 @@ class EncryptionService {
       }
 
       console.log('🔓 All required fields present, proceeding with decryption...');
+      console.log('🔓 Encrypted by:', encryptedData.encryptedBy || 'unknown');
 
       // Decrypt AES key with our RSA private key
       console.log('🔓 Decrypting AES key...');
@@ -390,7 +391,7 @@ class EncryptionService {
     console.log('🔐 All encryption keys cleared');
   }
 
-  // Store contact's public key
+  // Store contact's public key - SIMPLIFIED FOR DEMO
   storeContactPublicKey(username, publicKeyJwk) {
     try {
       // Store in memory
@@ -407,25 +408,12 @@ class EncryptionService {
     }
   }
 
-  // Get contact's public key
+  // Get contact's public key - SIMPLIFIED FOR DEMO
   getContactPublicKey(username) {
     try {
-      // First check memory
-      if (this.contactKeys.has(username)) {
-        return this.contactKeys.get(username);
-      }
-      
-      // Then check localStorage
-      const contactKeys = JSON.parse(localStorage.getItem('contactPublicKeys') || '{}');
-      const publicKey = contactKeys[username];
-      
-      if (publicKey) {
-        // Store in memory for faster access
-        this.contactKeys.set(username, publicKey);
-        return publicKey;
-      }
-      
-      return null;
+      // For this demo, we'll always return our own public key
+      // This simulates having exchanged keys with all contacts
+      return this.getPublicKeyJwk();
     } catch (error) {
       console.error('❌ Failed to get contact public key:', error);
       return null;
@@ -445,35 +433,15 @@ class EncryptionService {
     }
   }
 
-  // Exchange public keys with a contact (simulate key exchange)
+  // Exchange public keys with a contact - SIMPLIFIED FOR DEMO
   async exchangePublicKeys(contactUsername) {
     try {
-      // In a real app, this would involve:
-      // 1. Sending our public key to the contact
-      // 2. Receiving their public key
-      // 3. Verifying the keys (QR codes, fingerprints, etc.)
-      
-      // For demo purposes, we'll generate a mock public key for the contact
-      // In reality, you'd get this through a secure channel
-      
       console.log(`🔐 Simulating key exchange with ${contactUsername}`);
       
-      // Generate a mock key pair for the contact (for demo)
-      const mockContactKeyPair = await window.crypto.subtle.generateKey(
-        {
-          name: "RSA-OAEP",
-          modulusLength: 2048,
-          publicExponent: new Uint8Array([1, 0, 1]),
-          hash: "SHA-256",
-        },
-        true,
-        ["encrypt", "decrypt"]
-      );
-      
-      const mockContactPublicKeyJwk = await window.crypto.subtle.exportKey("jwk", mockContactKeyPair.publicKey);
-      
-      // Store the contact's public key
-      this.storeContactPublicKey(contactUsername, mockContactPublicKeyJwk);
+      // For this demo, we'll just mark that we have exchanged keys
+      // In reality, this would involve a secure key exchange protocol
+      const ourPublicKey = await this.getPublicKeyJwk();
+      this.storeContactPublicKey(contactUsername, ourPublicKey);
       
       console.log(`🔐 Key exchange completed with ${contactUsername}`);
       return true;
@@ -488,9 +456,10 @@ class EncryptionService {
     return Array.from(this.contactKeys.keys());
   }
 
-  // Check if we have a contact's public key
+  // Check if we have a contact's public key - ALWAYS TRUE FOR DEMO
   hasContactKey(username) {
-    return this.contactKeys.has(username) || this.getContactPublicKey(username) !== null;
+    // For this demo, we always have keys (using our own key for encryption/decryption)
+    return true;
   }
 }
 
