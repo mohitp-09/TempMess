@@ -34,10 +34,10 @@ groupApi.interceptors.response.use(
   }
 );
 
-// Create a new group
+// Create a new group - FIXED ENDPOINT PATH
 export const createGroup = async (groupData) => {
   try {
-    const response = await groupApi.post('/create', {
+    const response = await groupApi.post('/groups/create', {
       groupName: groupData.name,
       createdBy: groupData.createdBy,
       memberUsernames: groupData.members
@@ -48,10 +48,10 @@ export const createGroup = async (groupData) => {
   }
 };
 
-// Get user's groups (you'll need to implement this endpoint in backend)
+// Get user's groups - FIXED ENDPOINT PATH
 export const getUserGroups = async () => {
   try {
-    const response = await groupApi.get('/user/groups');
+    const response = await groupApi.get('/groups/user');
     return response.data;
   } catch (error) {
     console.error('Failed to fetch user groups:', error);
@@ -59,10 +59,10 @@ export const getUserGroups = async () => {
   }
 };
 
-// Get group messages (you'll need to implement this endpoint in backend)
+// Get group messages - FIXED ENDPOINT PATH
 export const getGroupMessages = async (groupId) => {
   try {
-    const response = await groupApi.get(`/group/${groupId}/messages`);
+    const response = await groupApi.get(`/groups/${groupId}/messages`);
     return response.data;
   } catch (error) {
     console.error('Failed to fetch group messages:', error);
