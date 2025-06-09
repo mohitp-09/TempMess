@@ -60,6 +60,27 @@ const GroupInfoPage = ({ group, onBack }) => {
   const linksCount = 23;
   const docsCount = 8;
 
+  // Safe member names extraction
+  const getMemberNames = () => {
+    if (!Array.isArray(members) || members.length === 0) {
+      return 'No members';
+    }
+    
+    return members
+      .map(member => {
+        // Handle different possible member object structures
+        if (typeof member === 'string') {
+          return member;
+        }
+        if (typeof member === 'object' && member !== null) {
+          return member.fullName || member.username || member.name || 'Unknown';
+        }
+        return 'Unknown';
+      })
+      .filter(name => name && name !== 'Unknown')
+      .join(', ');
+  };
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-base-100">
       {/* Header */}
@@ -91,7 +112,7 @@ const GroupInfoPage = ({ group, onBack }) => {
             {/* Group Name */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-bold text-base-content">{group.name}</h2>
+                <h2 className="text-2xl font-bold text-base-content">{group?.name || 'Group Name'}</h2>
                 <button className="p-1 rounded-full hover:bg-base-200 transition-colors">
                   <Edit3 className="size-4 text-base-content/60" />
                 </button>
@@ -99,7 +120,7 @@ const GroupInfoPage = ({ group, onBack }) => {
               
               {/* Member Names */}
               <p className="text-base-content/70 text-sm leading-relaxed max-w-md">
-                {members.map(member => member.fullName || member.username).join(', ')}
+                {getMemberNames()}
               </p>
             </div>
 
@@ -111,7 +132,7 @@ const GroupInfoPage = ({ group, onBack }) => {
               </div>
               <div className="flex items-center gap-1">
                 <Calendar className="size-4" />
-                <span>Created {new Date(group.createdAt).toLocaleDateString()}</span>
+                <span>Created {group?.createdAt ? new Date(group.createdAt).toLocaleDateString() : 'Unknown'}</span>
               </div>
             </div>
 
@@ -121,7 +142,7 @@ const GroupInfoPage = ({ group, onBack }) => {
                 "Udaipur trip ki baat par gour krke sabka apna name bata de..."
               </p>
               <p className="text-xs text-base-content/50 mt-1">
-                Group created by {group.createdBy}, on {new Date(group.createdAt).toLocaleDateString()} at {new Date(group.createdAt).toLocaleTimeString()}
+                Group created by {group?.createdBy || 'Unknown'}, on {group?.createdAt ? new Date(group.createdAt).toLocaleDateString() : 'Unknown date'} at {group?.createdAt ? new Date(group.createdAt).toLocaleTimeString() : 'Unknown time'}
               </p>
             </div>
           </div>
@@ -230,16 +251,25 @@ const GroupInfoPage = ({ group, onBack }) => {
             {/* Members List */}
             <div className="space-y-1">
               {visibleMembers.map((member, index) => {
-                const isCurrentUser = member.username === currentUser?.username;
+                const isCurrentUser = member?.username === currentUser?.username;
                 const isAdmin = index < 4; // Mock: first 4 members are admins
                 
+                // Safe member name extraction
+                const memberName = typeof member === 'string' 
+                  ? member 
+                  : member?.fullName || member?.username || member?.name || 'Unknown User';
+                
+                const memberUsername = typeof member === 'string' 
+                  ? member 
+                  : member?.username || 'unknown';
+                
                 return (
-                  <div key={member.id || member.username} className="flex items-center gap-3 p-2 rounded-lg hover:bg-base-50 transition-colors">
+                  <div key={member?.id || member?.username || index} className="flex items-center gap-3 p-2 rounded-lg hover:bg-base-50 transition-colors group">
                     <div className="size-12 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
-                      {member.profilePic ? (
+                      {member?.profilePic || member?.profilePicture ? (
                         <img 
-                          src={member.profilePic} 
-                          alt={member.fullName} 
+                          src={member.profilePic || member.profilePicture} 
+                          alt={memberName} 
                           className="size-12 object-cover"
                           onError={(e) => {
                             e.target.style.display = 'none';
@@ -247,9 +277,9 @@ const GroupInfoPage = ({ group, onBack }) => {
                           }}
                         />
                       ) : null}
-                      <div className={`size-12 rounded-full bg-primary/10 flex items-center justify-center ${member.profilePic ? 'hidden' : 'flex'}`}>
+                      <div className={`size-12 rounded-full bg-primary/10 flex items-center justify-center ${(member?.profilePic || member?.profilePicture) ? 'hidden' : 'flex'}`}>
                         <span className="text-primary font-semibold">
-                          {(member.fullName || member.username)?.charAt(0).toUpperCase()}
+                          {memberName.charAt(0).toUpperCase()}
                         </span>
                       </div>
                     </div>
@@ -257,7 +287,7 @@ const GroupInfoPage = ({ group, onBack }) => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-base-content truncate">
-                          {member.fullName || member.username}
+                          {memberName}
                           {isCurrentUser && <span className="text-base-content/60"> (You)</span>}
                         </span>
                         {isAdmin && (
@@ -267,10 +297,10 @@ const GroupInfoPage = ({ group, onBack }) => {
                         )}
                       </div>
                       <p className="text-sm text-base-content/60 truncate">
-                        {member.username === 'you' ? 'Radiating positivity in every moment! ✨' :
-                         member.username === 'akshat' ? "Haven't Mind For Thinking That\" What is Good or Bad In This Work" :
-                         member.username === 'arsh' ? 'Hey there! I am using WhatsApp.' :
-                         member.username === 'hemant' ? 'Stress less and enjoy the best 😊😎' :
+                        {memberUsername === 'you' ? 'Radiating positivity in every moment! ✨' :
+                         memberUsername === 'akshat' ? "Haven't Mind For Thinking That\" What is Good or Bad In This Work" :
+                         memberUsername === 'arsh' ? 'Hey there! I am using WhatsApp.' :
+                         memberUsername === 'hemant' ? 'Stress less and enjoy the best 😊😎' :
                          'Hey there! I am using MessUp.'}
                       </p>
                     </div>
