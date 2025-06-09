@@ -2,36 +2,251 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Hide scrollbars but keep functionality */
+/* macOS-style glassmorphism and animations */
+@layer base {
+  :root {
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    --blur-strength: blur(8px);
+    --animation-spring: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --animation-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  [data-theme="dark"] {
+    --glass-bg: rgba(0, 0, 0, 0.2);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Glass morphism utilities */
+@layer utilities {
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-strength);
+    -webkit-backdrop-filter: var(--blur-strength);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.4);
+  }
+
+  .glass-subtle {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* macOS-style shadows */
+  .shadow-macos {
+    box-shadow: 
+      0 0 0 1px rgba(0, 0, 0, 0.05),
+      0 2px 4px rgba(0, 0, 0, 0.1),
+      0 8px 24px rgba(0, 0, 0, 0.1);
+  }
+
+  .shadow-macos-lg {
+    box-shadow: 
+      0 0 0 1px rgba(0, 0, 0, 0.05),
+      0 4px 8px rgba(0, 0, 0, 0.1),
+      0 16px 48px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Smooth animations */
+  .animate-spring {
+    animation-timing-function: var(--animation-spring);
+  }
+
+  .animate-smooth {
+    animation-timing-function: var(--animation-smooth);
+  }
+
+  /* Floating animations */
+  @keyframes float-gentle {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-6px) rotate(1deg); }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { 
+      box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.3);
+      transform: scale(1);
+    }
+    50% { 
+      box-shadow: 0 0 30px rgba(var(--primary-rgb), 0.5);
+      transform: scale(1.02);
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-float-gentle {
+    animation: float-gentle 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.4s var(--animation-smooth);
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.3s var(--animation-smooth);
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.2s var(--animation-smooth);
+  }
+
+  /* Message bubble animations */
+  @keyframes message-appear {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .animate-message-appear {
+    animation: message-appear 0.3s var(--animation-smooth);
+  }
+
+  /* Hover effects */
+  .hover-lift {
+    transition: all 0.3s var(--animation-smooth);
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 0 0 1px rgba(0, 0, 0, 0.05),
+      0 8px 16px rgba(0, 0, 0, 0.15),
+      0 24px 64px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Custom scrollbars */
+  .scrollbar-macos {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  }
+
+  .scrollbar-macos::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-macos::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-macos::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+    transition: background 0.2s ease;
+  }
+
+  .scrollbar-macos::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  /* Button styles */
+  .btn-macos {
+    @apply px-6 py-3 rounded-xl font-medium transition-all duration-300;
+    @apply glass border-0 shadow-macos hover-lift;
+    @apply hover:shadow-macos-lg active:scale-95;
+  }
+
+  .btn-macos-primary {
+    @apply btn-macos bg-gradient-to-r from-primary to-primary/90 text-primary-content;
+    @apply hover:from-primary/90 hover:to-primary/80;
+  }
+
+  .btn-macos-secondary {
+    @apply btn-macos glass-subtle text-base-content/80;
+    @apply hover:text-base-content hover:glass-strong;
+  }
+
+  /* Input styles */
+  .input-macos {
+    @apply w-full px-4 py-3 rounded-xl border-0 glass-subtle;
+    @apply focus:outline-none focus:glass-strong focus:shadow-macos;
+    @apply transition-all duration-300 placeholder:text-base-content/50;
+  }
+
+  /* Card styles */
+  .card-macos {
+    @apply rounded-2xl glass shadow-macos hover-lift;
+    @apply transition-all duration-300;
+  }
+
+  .card-macos-strong {
+    @apply rounded-2xl glass-strong shadow-macos-lg;
+  }
+}
+
+/* Hide default scrollbars but keep functionality */
 .no-scrollbar {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .no-scrollbar::-webkit-scrollbar {
-  display: none;  /* Safari and Chrome */
+  display: none;
 }
 
-/* Custom scrollbar for main content areas */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 3px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
-}
-
+/* Legacy animations for compatibility */
 @layer utilities {
-  /* Fade in animations */
   @keyframes fadeInUp {
     from {
       opacity: 0;
@@ -48,7 +263,6 @@
     to { opacity: 1; }
   }
 
-  /* Slide animations */
   @keyframes slideInLeft {
     from {
       opacity: 0;
@@ -93,7 +307,6 @@
     }
   }
 
-  /* Scale and rotate animations */
   @keyframes scaleIn {
     from {
       opacity: 0;
@@ -116,7 +329,6 @@
     }
   }
 
-  /* Floating animations */
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-10px); }
@@ -139,13 +351,11 @@
     to { transform: rotate(360deg); }
   }
 
-  /* Shimmer effect */
   @keyframes shimmer {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(200%); }
   }
 
-  /* Animation classes */
   .animate-fadeInUp {
     animation: fadeInUp 0.8s ease-out;
   }

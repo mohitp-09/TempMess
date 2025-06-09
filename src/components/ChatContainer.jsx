@@ -4,7 +4,7 @@ import MessageInput from "./MessageInput";
 import { formatMessageTime, getDateLabel } from "../lib/utils";
 import { useChatStore } from "../store/useChatStore";
 import { getCurrentUserFromToken } from "../lib/jwtUtils";
-import { MessageSquare, Sparkles, Loader2, Check, CheckCheck, CheckCircle } from "lucide-react";
+import { MessageSquare, Sparkles, Loader2, Check, CheckCheck, CheckCircle, Zap, Heart } from "lucide-react";
 
 const ChatContainer = ({ selectedUser, onClose }) => {
   const messageEndRef = useRef(null);
@@ -35,7 +35,7 @@ const ChatContainer = ({ selectedUser, onClose }) => {
     const interval = setInterval(() => {
       const userMessages = getMessagesForUser(selectedUser.username);
       setMessages(userMessages);
-    }, 1000); // Check for new messages every second
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [selectedUser, getMessagesForUser]);
@@ -62,18 +62,18 @@ const ChatContainer = ({ selectedUser, onClose }) => {
 
   const isLoadingMessages = isLoadingOldMessages(selectedUser.username);
 
-  // Function to check if messages are consecutive (same sender, within 2 minutes)
+  // Function to check if messages are consecutive
   const isConsecutiveMessage = (currentMsg, prevMsg) => {
     if (!prevMsg || !currentMsg) return false;
     
     const isSameSender = currentMsg.senderId === prevMsg.senderId;
     const timeDiff = new Date(currentMsg.createdAt) - new Date(prevMsg.createdAt);
-    const isWithinTimeLimit = timeDiff < 2 * 60 * 1000; // 2 minutes
+    const isWithinTimeLimit = timeDiff < 2 * 60 * 1000;
     
     return isSameSender && isWithinTimeLimit;
   };
 
-  // Function to get message status with proper icons and real-time updates
+  // Enhanced message status display
   const getMessageStatusDisplay = (message, isOwnMessage) => {
     if (!isOwnMessage) return null;
     
@@ -85,7 +85,6 @@ const ChatContainer = ({ selectedUser, onClose }) => {
       };
     }
     
-    // Get real-time status from store
     const status = message.status || getMessageStatus(message._id) || 'SENT';
     
     switch (status) {
@@ -105,7 +104,7 @@ const ChatContainer = ({ selectedUser, onClose }) => {
         return {
           icon: <CheckCheck className="size-3" />,
           text: "Read",
-          className: "text-blue-400" // Blue for read messages
+          className: "text-blue-400"
         };
       default:
         return {
@@ -117,185 +116,200 @@ const ChatContainer = ({ selectedUser, onClose }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-base-100">
+    <div className="flex-1 flex flex-col overflow-hidden glass-subtle">
       <ChatHeader user={selectedUser} onClose={onClose} />
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-1 bg-gradient-to-b from-base-100 to-base-50">
-        {isLoadingMessages ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="flex items-center gap-3 bg-base-200/50 backdrop-blur-sm rounded-full px-6 py-3">
-              <Loader2 className="animate-spin size-5 text-primary" />
-              <span className="text-base-content/70 text-sm font-medium">Loading chat history...</span>
-            </div>
-          </div>
-        ) : isLoading && messages.length === 0 ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="flex items-center gap-3 bg-base-200/50 backdrop-blur-sm rounded-full px-6 py-3">
-              <div className="animate-spin size-5 border-2 border-primary border-t-transparent rounded-full"></div>
-              <span className="text-base-content/70 text-sm font-medium">Loading messages...</span>
-            </div>
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            {/* App Icon with MessUp branding */}
-            <div className="flex justify-center gap-4 mb-8">
-              <div className="relative">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center animate-bounce shadow-lg border border-primary/20 backdrop-blur-sm">
-                  <MessageSquare className="w-10 h-10 text-primary" />
+      {/* Enhanced Chat Area */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-2 scrollbar-macos relative">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-5 pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-primary rounded-full blur-3xl animate-float-gentle" />
+          <div className="absolute bottom-1/4 right-1/4 w-24 h-24 bg-secondary rounded-full blur-3xl animate-float-gentle" style={{ animationDelay: '2s' }} />
+        </div>
+
+        <div className="relative z-10">
+          {isLoadingMessages ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="card-macos p-6 flex items-center gap-4 animate-scale-in">
+                <div className="relative">
+                  <Loader2 className="animate-spin size-6 text-primary" />
+                  <div className="absolute inset-0 animate-ping size-6 border border-primary/20 rounded-full" />
                 </div>
-                <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-primary/60 animate-pulse" />
-                <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-                  <div className="bg-primary/90 backdrop-blur-sm text-primary-content text-xs font-bold px-3 py-1 rounded-full shadow-lg border border-primary/30">
-                    MessUp
+                <span className="text-base-content/70 text-sm font-medium">Loading chat history...</span>
+              </div>
+            </div>
+          ) : isLoading && messages.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="card-macos p-6 flex items-center gap-4 animate-scale-in">
+                <div className="animate-spin size-6 border-2 border-primary/30 border-t-primary rounded-full" />
+                <span className="text-base-content/70 text-sm font-medium">Loading messages...</span>
+              </div>
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              {/* Enhanced Welcome Section */}
+              <div className="flex justify-center gap-6 mb-12">
+                <div className="relative animate-float-gentle">
+                  <div className="w-24 h-24 rounded-3xl glass-strong flex items-center justify-center shadow-macos-lg">
+                    <MessageSquare className="w-12 h-12 text-primary" />
                   </div>
+                  <Sparkles className="absolute -top-2 -right-2 w-8 h-8 text-primary/60 animate-pulse-glow" />
+                  <Heart className="absolute -bottom-2 -left-2 w-6 h-6 text-pink-500/60 animate-pulse" />
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-6 max-w-sm">
-              <div className="space-y-3">
-                <h3 className="text-2xl font-bold text-base-content">
-                  Ready to chat with{" "}
-                  <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                    {selectedUser.fullName}
-                  </span>
-                  ?
-                </h3>
-                
-                <p className="text-base-content/60 leading-relaxed">
-                  Break the ice and send your first message! Every great conversation starts with a simple "Hello" ✨
-                </p>
-              </div>
+              <div className="space-y-8 max-w-md">
+                <div className="space-y-4">
+                  <h3 className="text-3xl font-bold text-base-content">
+                    Ready to chat with{" "}
+                    <span className="gradient-text">
+                      {selectedUser.fullName}
+                    </span>
+                    ?
+                  </h3>
+                  
+                  <p className="text-base-content/60 leading-relaxed text-lg">
+                    Break the ice and send your first message! Every great conversation starts with a simple "Hello" ✨
+                  </p>
+                </div>
 
-              {/* Quick action tip */}
-              <div className="mt-8 p-4 bg-primary/5 rounded-xl border border-primary/20 backdrop-blur-sm">
-                <p className="text-sm text-primary/80 font-medium">
-                  💡 Start typing in the message box below to begin your conversation
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          messages.map((message, index) => {
-            const prevMessage = messages[index - 1];
-            const nextMessage = messages[index + 1];
-            const currDate = new Date(message.createdAt).toDateString();
-            const prevDate = prevMessage ? new Date(prevMessage.createdAt).toDateString() : null;
-            const showDateLabel = currDate !== prevDate;
-
-            const isOwnMessage = message.senderId === authUser?.username;
-            const isConsecutive = isConsecutiveMessage(message, prevMessage);
-            const isLastInGroup = !nextMessage || !isConsecutiveMessage(nextMessage, message);
-
-            const messageStatus = getMessageStatusDisplay(message, isOwnMessage);
-
-            return (
-              <div key={message._id}>
-                {showDateLabel && (
-                  <div className="flex items-center justify-center my-6">
-                    <div className="bg-base-200/80 backdrop-blur-sm text-base-content/60 text-xs font-medium px-4 py-2 rounded-full shadow-sm">
-                      {getDateLabel(message.createdAt)}
+                {/* Enhanced Action Tip */}
+                <div className="card-macos p-6 bg-gradient-to-r from-primary/5 to-secondary/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-primary/20 to-secondary/20 flex items-center justify-center">
+                      <Zap className="w-5 h-5 text-primary" />
                     </div>
+                    <p className="text-sm text-primary/80 font-medium">
+                      Start typing in the message box below to begin your conversation
+                    </p>
                   </div>
-                )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            messages.map((message, index) => {
+              const prevMessage = messages[index - 1];
+              const nextMessage = messages[index + 1];
+              const currDate = new Date(message.createdAt).toDateString();
+              const prevDate = prevMessage ? new Date(prevMessage.createdAt).toDateString() : null;
+              const showDateLabel = currDate !== prevDate;
 
-                <div
-                  className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} ${
-                    isConsecutive ? "mb-1" : "mb-3"
-                  }`}
-                  ref={index === messages.length - 1 ? messageEndRef : null}
-                >
-                  {/* Avatar - only show for first message in group and received messages */}
-                  {!isOwnMessage && !isConsecutive && (
-                    <div className="mr-2 mt-auto">
-                      <div className="size-8 rounded-full border border-base-300/50 shadow-sm overflow-hidden">
-                        <img
-                          src={selectedUser.profilePic}
-                          alt="profile pic"
-                          className="rounded-full object-cover"
-                          onError={(e) => {
-                            e.target.src = '/avatar.png';
-                          }}
-                        />
+              const isOwnMessage = message.senderId === authUser?.username;
+              const isConsecutive = isConsecutiveMessage(message, prevMessage);
+              const isLastInGroup = !nextMessage || !isConsecutiveMessage(nextMessage, message);
+
+              const messageStatus = getMessageStatusDisplay(message, isOwnMessage);
+
+              return (
+                <div key={message._id} className="animate-message-appear">
+                  {showDateLabel && (
+                    <div className="flex items-center justify-center my-8">
+                      <div className="card-macos px-4 py-2 text-xs font-medium text-base-content/60">
+                        {getDateLabel(message.createdAt)}
                       </div>
                     </div>
                   )}
 
-                  {/* Spacer for consecutive received messages */}
-                  {!isOwnMessage && isConsecutive && (
-                    <div className="w-10"></div>
-                  )}
-
-                  <div className="max-w-[70%] flex flex-col">
-                    {/* Message bubble */}
-                    <div
-                      className={`px-3 py-2 shadow-sm relative ${
-                        isOwnMessage
-                          ? "bg-gradient-to-br from-primary to-primary/90 text-primary-content ml-auto"
-                          : "bg-base-200 text-base-content"
-                      } ${
-                        // Rounded corners based on position in group
-                        isOwnMessage
-                          ? isConsecutive
-                            ? isLastInGroup
-                              ? "rounded-l-2xl rounded-tr-2xl rounded-br-md" // Last in group
-                              : "rounded-l-2xl rounded-r-md" // Middle of group
-                            : isLastInGroup
-                            ? "rounded-l-2xl rounded-tr-2xl rounded-br-md" // Single or last
-                            : "rounded-l-2xl rounded-tr-2xl rounded-br-sm" // First in group
-                          : isConsecutive
-                          ? isLastInGroup
-                            ? "rounded-r-2xl rounded-tl-2xl rounded-bl-md" // Last in group
-                            : "rounded-r-2xl rounded-l-md" // Middle of group
-                          : isLastInGroup
-                          ? "rounded-r-2xl rounded-tl-2xl rounded-bl-md" // Single or last
-                          : "rounded-r-2xl rounded-tl-2xl rounded-bl-sm" // First in group
-                      }`}
-                    >
-                      {/* Message content */}
-                      <div className="flex flex-col">
-                        {message.image && (
+                  <div
+                    className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} ${
+                      isConsecutive ? "mb-1" : "mb-4"
+                    }`}
+                    ref={index === messages.length - 1 ? messageEndRef : null}
+                  >
+                    {/* Enhanced Avatar */}
+                    {!isOwnMessage && !isConsecutive && (
+                      <div className="mr-3 mt-auto">
+                        <div className="size-10 rounded-full shadow-macos overflow-hidden glass-subtle">
                           <img
-                            src={message.image}
-                            alt="Attachment"
-                            className="max-w-[200px] rounded-lg mb-2 shadow-sm"
+                            src={selectedUser.profilePic}
+                            alt="profile pic"
+                            className="rounded-full object-cover"
+                            onError={(e) => {
+                              e.target.src = '/avatar.png';
+                            }}
                           />
-                        )}
-                        
-                        {message.text && (
-                          <div className="flex items-end gap-2">
-                            <p className="leading-relaxed flex-1">{message.text}</p>
-                            
-                            {/* Time and status in bottom right */}
-                            <div className="flex items-center gap-1 text-xs flex-shrink-0 ml-2 mt-1">
-                              <span className="text-[11px] opacity-70">
-                                {formatMessageTime(message.createdAt)}
-                              </span>
-                              
-                              {/* Status indicator for own messages */}
-                              {messageStatus && (
-                                <div className={`flex items-center ${messageStatus.className}`}>
-                                  {messageStatus.icon}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Status text below message for own messages */}
-                    {messageStatus && isOwnMessage && (
-                      <div className="text-xs text-base-content/50 mt-1 text-right">
-                        {messageStatus.text}
+                        </div>
                       </div>
                     )}
+
+                    {!isOwnMessage && isConsecutive && (
+                      <div className="w-13"></div>
+                    )}
+
+                    <div className="max-w-[75%] flex flex-col">
+                      {/* Enhanced Message Bubble */}
+                      <div
+                        className={`px-4 py-3 shadow-macos relative transition-all duration-300 hover-lift ${
+                          isOwnMessage
+                            ? "bg-gradient-to-br from-primary via-primary/95 to-primary/90 text-primary-content ml-auto"
+                            : "glass-strong text-base-content"
+                        } ${
+                          isOwnMessage
+                            ? isConsecutive
+                              ? isLastInGroup
+                                ? "rounded-t-2xl rounded-l-2xl rounded-br-lg"
+                                : "rounded-t-2xl rounded-l-2xl rounded-br-md"
+                              : isLastInGroup
+                              ? "rounded-t-2xl rounded-l-2xl rounded-br-lg"
+                              : "rounded-t-2xl rounded-l-2xl rounded-br-sm"
+                            : isConsecutive
+                            ? isLastInGroup
+                              ? "rounded-t-2xl rounded-r-2xl rounded-bl-lg"
+                              : "rounded-t-2xl rounded-r-2xl rounded-bl-md"
+                            : isLastInGroup
+                            ? "rounded-t-2xl rounded-r-2xl rounded-bl-lg"
+                            : "rounded-t-2xl rounded-r-2xl rounded-bl-sm"
+                        }`}
+                      >
+                        {/* Message Content */}
+                        <div className="flex flex-col">
+                          {message.image && (
+                            <img
+                              src={message.image}
+                              alt="Attachment"
+                              className="max-w-[250px] rounded-xl mb-3 shadow-macos"
+                            />
+                          )}
+                          
+                          {message.text && (
+                            <div className="flex items-end gap-3">
+                              <p className="leading-relaxed flex-1 text-[15px]">{message.text}</p>
+                              
+                              {/* Enhanced Time and Status */}
+                              <div className="flex items-center gap-1.5 text-xs flex-shrink-0 ml-3 mt-1">
+                                <span className="text-[11px] opacity-70 font-medium">
+                                  {formatMessageTime(message.createdAt)}
+                                </span>
+                                
+                                {messageStatus && (
+                                  <div className={`flex items-center transition-all duration-300 ${messageStatus.className}`}>
+                                    {messageStatus.icon}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Message Glow Effect for Own Messages */}
+                        {isOwnMessage && (
+                          <div className="absolute inset-0 rounded-inherit bg-gradient-to-r from-primary/10 to-secondary/10 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                        )}
+                      </div>
+
+                      {/* Status Text */}
+                      {messageStatus && isOwnMessage && (
+                        <div className="text-xs text-base-content/50 mt-1 text-right font-medium">
+                          {messageStatus.text}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })
-        )}
+              );
+            })
+          )}
+        </div>
       </div>
 
       <MessageInput onSendMessage={handleSendMessage} />

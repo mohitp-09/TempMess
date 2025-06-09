@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Phone, Video, Search, ChevronRight, ChevronDown, MoreVertical, Users } from "lucide-react";
+import { X, Phone, Video, Search, MoreVertical, Users, Zap, Heart } from "lucide-react";
 
 const ChatHeader = ({ user, onClose, isGroup = false }) => {
   const [showSearch, setShowSearch] = useState(false);
@@ -8,45 +8,49 @@ const ChatHeader = ({ user, onClose, isGroup = false }) => {
   const toggleSearch = () => {
     setShowSearch(!showSearch);
     if (!showSearch) {
-      setExpandActions(false); // Close drawer when opening search
+      setExpandActions(false);
     }
   };
 
   const toggleActions = () => {
     setExpandActions(!expandActions);
     if (!expandActions) {
-      setShowSearch(false); // Close search when opening drawer
+      setShowSearch(false);
     }
   };
 
   return (
-    <div className="p-4 border-b border-base-300/50 bg-gradient-to-r from-base-100 to-base-50 backdrop-blur-sm">
-      <div className="flex items-center justify-between">
+    <div className="p-6 border-b border-white/10 glass-strong relative overflow-hidden">
+      {/* Background Decoration */}
+      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-secondary/5 pointer-events-none" />
+      
+      <div className="relative z-10 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="size-12 rounded-full ring-2 ring-base-300/50 shadow-md overflow-hidden">
+            <div className="size-14 rounded-2xl shadow-macos overflow-hidden glass-subtle">
               {isGroup ? (
-                <div className="size-12 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                  <Users className="size-6 text-primary" />
+                <div className="size-14 bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                  <Users className="size-7 text-purple-600" />
                 </div>
               ) : (
                 <img
                   src={user.profilePic}
                   alt={user.fullName}
-                  className="size-12 rounded-full object-cover"
+                  className="size-14 rounded-2xl object-cover"
                 />
               )}
               {user.isOnline && !isGroup && (
-                <span className="absolute bottom-0 right-0 size-3.5 bg-green-500 rounded-full ring-2 ring-white shadow-sm" />
+                <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-macos animate-pulse-glow" />
               )}
             </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-base-content text-lg flex items-center gap-2">
-              {isGroup && <Users className="size-4" />}
+          
+          <div className="space-y-1">
+            <h3 className="font-semibold text-base-content text-xl flex items-center gap-2">
+              {isGroup && <Users className="size-5 text-purple-600" />}
               {user.fullName}
             </h3>
-            <p className="text-sm text-base-content/60 flex items-center gap-2">
+            <p className="text-sm text-base-content/60 flex items-center gap-2 font-medium">
               {isGroup ? (
                 <>
                   <Users className="size-3" />
@@ -54,61 +58,68 @@ const ChatHeader = ({ user, onClose, isGroup = false }) => {
                 </>
               ) : (
                 <>
-                  <span className={`size-2 rounded-full ${user.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                  {user.isOnline ? "Online" : "Offline"}
+                  <div className={`size-2 rounded-full ${user.isOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+                  {user.isOnline ? (
+                    <span className="flex items-center gap-1">
+                      <Zap className="size-3 text-green-500" />
+                      Online
+                    </span>
+                  ) : (
+                    "Offline"
+                  )}
                 </>
               )}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center">
-          {/* Search input that appears when search icon is clicked */}
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out flex items-center mr-3 ${showSearch ? 'w-48 sm:w-64 opacity-100' : 'w-0 opacity-0'}`}>
+        <div className="flex items-center gap-2">
+          {/* Enhanced Search Input */}
+          <div className={`overflow-hidden transition-all duration-500 ease-out flex items-center ${showSearch ? 'w-64 opacity-100' : 'w-0 opacity-0'}`}>
             <div className="relative w-full">
               <input
                 type="text"
                 placeholder="Search conversation..."
-                className="w-full pl-10 pr-4 py-2.5 text-sm bg-base-200/80 backdrop-blur-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-base-200 transition-all duration-200 border border-base-300/50"
+                className="input-macos pl-10 text-sm"
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-base-content/40" />
             </div>
           </div>
 
-          {/* Desktop view: all icons visible */}
+          {/* Enhanced Action Buttons */}
           <div className="hidden sm:flex items-center gap-1">
             <button
               onClick={toggleSearch}
-              className="p-2.5 rounded-xl hover:bg-base-200/80 transition-all duration-200 group"
+              className="p-3 rounded-xl glass-subtle hover:glass-strong transition-all duration-300 group hover-lift shadow-macos"
               aria-label="Search conversation"
             >
-              <Search className="size-5 text-base-content/70 group-hover:text-base-content transition-colors" />
+              <Search className="size-5 text-base-content/70 group-hover:text-primary transition-colors" />
             </button>
             {!isGroup && (
               <>
                 <button
-                  className="p-2.5 rounded-xl hover:bg-base-200/80 transition-all duration-200 group"
+                  className="p-3 rounded-xl glass-subtle hover:glass-strong transition-all duration-300 group hover-lift shadow-macos"
                   aria-label="Voice call"
                 >
-                  <Phone className="size-5 text-base-content/70 group-hover:text-base-content transition-colors" />
+                  <Phone className="size-5 text-base-content/70 group-hover:text-green-500 transition-colors" />
                 </button>
                 <button
-                  className="p-2.5 rounded-xl hover:bg-base-200/80 transition-all duration-200 group"
+                  className="p-3 rounded-xl glass-subtle hover:glass-strong transition-all duration-300 group hover-lift shadow-macos"
                   aria-label="Video call"
                 >
-                  <Video className="size-5 text-base-content/70 group-hover:text-base-content transition-colors" />
+                  <Video className="size-5 text-base-content/70 group-hover:text-blue-500 transition-colors" />
                 </button>
               </>
             )}
           </div>
 
-          {/* Mobile view: collapsible menu */}
+          {/* Enhanced Mobile Menu */}
           <div className="sm:hidden relative">
-            {expandActions ? (
-              <div className="absolute right-0 top-full mt-2 bg-base-100 rounded-xl shadow-xl border border-base-300/50 py-2 z-10 min-w-[160px] backdrop-blur-sm">
+            {expandActions && (
+              <div className="absolute right-0 top-full mt-3 card-macos-strong py-2 z-20 min-w-[180px] animate-scale-in">
                 <button
                   onClick={toggleSearch}
-                  className="flex items-center w-full px-4 py-3 hover:bg-base-200/80 transition-colors"
+                  className="flex items-center w-full px-4 py-3 glass-subtle hover:glass-strong transition-all duration-300 mx-2 rounded-lg"
                   aria-label="Search conversation"
                 >
                   <Search className="size-4 mr-3 text-base-content/70" />
@@ -117,14 +128,14 @@ const ChatHeader = ({ user, onClose, isGroup = false }) => {
                 {!isGroup && (
                   <>
                     <button
-                      className="flex items-center w-full px-4 py-3 hover:bg-base-200/80 transition-colors"
+                      className="flex items-center w-full px-4 py-3 glass-subtle hover:glass-strong transition-all duration-300 mx-2 rounded-lg"
                       aria-label="Voice call"
                     >
                       <Phone className="size-4 mr-3 text-base-content/70" />
                       <span className="text-sm font-medium">Call</span>
                     </button>
                     <button
-                      className="flex items-center w-full px-4 py-3 hover:bg-base-200/80 transition-colors"
+                      className="flex items-center w-full px-4 py-3 glass-subtle hover:glass-strong transition-all duration-300 mx-2 rounded-lg"
                       aria-label="Video call"
                     >
                       <Video className="size-4 mr-3 text-base-content/70" />
@@ -133,23 +144,24 @@ const ChatHeader = ({ user, onClose, isGroup = false }) => {
                   </>
                 )}
               </div>
-            ) : null}
+            )}
 
             <button
               onClick={toggleActions}
-              className="p-2.5 rounded-xl hover:bg-base-200/80 transition-all duration-200 group"
+              className="p-3 rounded-xl glass-subtle hover:glass-strong transition-all duration-300 group hover-lift shadow-macos"
               aria-label="More options"
             >
               <MoreVertical className="size-5 text-base-content/70 group-hover:text-base-content transition-colors" />
             </button>
           </div>
 
+          {/* Enhanced Close Button */}
           <button
             onClick={onClose}
-            className="p-2.5 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all duration-200 ml-2 group"
+            className="p-3 rounded-xl glass-subtle hover:bg-red-500/20 hover:text-red-500 transition-all duration-300 ml-2 group hover-lift shadow-macos"
             aria-label="Close chat"
           >
-            <X className="size-5 text-base-content/70 group-hover:text-red-600 transition-colors" />
+            <X className="size-5 text-base-content/70 group-hover:text-red-500 transition-colors" />
           </button>
         </div>
       </div>
