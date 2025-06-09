@@ -57,7 +57,7 @@ const useChatStore = create((set, get) => ({
     set({ isConnected: false });
   },
 
-  // Load old messages for a user and decrypt them - IMPROVED DECRYPTION LOGIC
+  // Load old messages for a user and decrypt them - FIXED DECRYPTION LOGIC
   loadOldMessages: async (username) => {
     const { loadingOldMessages } = get();
     
@@ -78,17 +78,20 @@ const useChatStore = create((set, get) => ({
       const oldMessages = await getOldChatMessages(username);
       
       console.log('📥 Loaded old messages:', oldMessages.length);
-      console.log('📥 Sample message structure:', oldMessages[0]);
+      if (oldMessages.length > 0) {
+        console.log('📥 Sample message structure:', oldMessages[0]);
+      }
       
-      // Decrypt messages if they are encrypted - IMPROVED LOGIC FOR API RESPONSE
-      const decryptedMessages = await Promise.all(
+      // Process messages and attempt decryption
+      const processedMessages = await Promise.all(
         oldMessages.map(async (msg, index) => {
-          // Check if message text exists and is potentially encrypted
+          // Check if message text exists
           if (!msg.text || typeof msg.text !== 'string') {
             console.warn(`⚠️ Message ${index} has no text or invalid text format`);
             return {
               ...msg,
-              text: '[Empty message]'
+              text: '[Empty message]',
+              decryptionFailed: true
             };
           }
 
@@ -101,15 +104,20 @@ const useChatStore = create((set, get) => ({
               const decryptedText = await encryptionService.decryptMessage(msg.text);
               
               // Check if decryption actually succeeded
-              if (decryptedText && !decryptedText.startsWith('[') && !decryptedText.includes('could not be decrypted')) {
+              if (decryptedText && 
+                  !decryptedText.startsWith('[') && 
+                  !decryptedText.includes('could not be decrypted') &&
+                  !decryptedText.includes('wrong key') &&
+                  !decryptedText.includes('different key')) {
                 console.log(`✅ Old message ${index} decrypted successfully:`, decryptedText.substring(0, 50) + '...');
                 return {
                   ...msg,
                   text: decryptedText,
-                  isEncrypted: true // Mark as originally encrypted
+                  isEncrypted: true,
+                  decryptionSuccessful: true
                 };
               } else {
-                console.warn(`⚠️ Decryption returned error message for ${index}:`, decryptedText);
+                console.warn(`⚠️ Decryption returned error for message ${index}:`, decryptedText);
                 return {
                   ...msg,
                   text: decryptedText || '[Message could not be decrypted]',
@@ -119,7 +127,6 @@ const useChatStore = create((set, get) => ({
               }
             } catch (error) {
               console.warn(`⚠️ Failed to decrypt old message ${index}:`, error);
-              // Return with error message if decryption fails
               return {
                 ...msg,
                 text: '[Message could not be decrypted]',
@@ -139,12 +146,18 @@ const useChatStore = create((set, get) => ({
       );
 
       // Sort messages by timestamp (oldest first)
-      const sortedMessages = decryptedMessages.sort((a, b) => 
+      const sortedMessages = processedMessages.sort((a, b) => 
         new Date(a.createdAt) - new Date(b.createdAt)
       );
 
       console.log(`📋 Processed ${sortedMessages.length} messages for ${username}`);
-      console.log('📋 Sample processed message:', sortedMessages[0]);
+      
+      // Count successful/failed decryptions
+      const encryptedCount = sortedMessages.filter(m => m.isEncrypted).length;
+      const successfulDecryptions = sortedMessages.filter(m => m.decryptionSuccessful).length;
+      const failedDecryptions = sortedMessages.filter(m => m.decryptionFailed).length;
+      
+      console.log(`📊 Decryption stats: ${encryptedCount} encrypted, ${successfulDecryptions} decrypted, ${failedDecryptions} failed`);
 
       set((state) => ({
         messages: {
@@ -267,6 +280,7 @@ const useChatStore = create((set, get) => ({
 
     let decryptedText = messageData.message;
     let isEncrypted = false;
+    let decryptionFailed = false;
 
     // Check if message is encrypted and decrypt it
     if (messageData.message && encryptionService.isEncryptedMessage(messageData.message)) {
@@ -275,18 +289,23 @@ const useChatStore = create((set, get) => ({
         decryptedText = await encryptionService.decryptMessage(messageData.message);
         
         // Check if decryption actually succeeded
-        if (decryptedText && !decryptedText.startsWith('[') && !decryptedText.includes('could not be decrypted')) {
+        if (decryptedText && 
+            !decryptedText.startsWith('[') && 
+            !decryptedText.includes('could not be decrypted') &&
+            !decryptedText.includes('wrong key') &&
+            !decryptedText.includes('different key')) {
           isEncrypted = true;
           console.log('✅ Incoming message decrypted successfully');
         } else {
           console.error('❌ Decryption returned error:', decryptedText);
-          decryptedText = '[Message could not be decrypted]';
           isEncrypted = true;
+          decryptionFailed = true;
         }
       } catch (error) {
         console.error('❌ Failed to decrypt incoming message:', error);
         decryptedText = '[Message could not be decrypted]';
         isEncrypted = true;
+        decryptionFailed = true;
       }
     }
 
@@ -297,7 +316,8 @@ const useChatStore = create((set, get) => ({
       text: decryptedText,
       createdAt: messageData.timestamp || new Date().toISOString(),
       status: 'DELIVERED',
-      isEncrypted: isEncrypted
+      isEncrypted: isEncrypted,
+      decryptionFailed: decryptionFailed
     };
 
     set((state) => {

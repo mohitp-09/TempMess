@@ -168,7 +168,7 @@ class EncryptionService {
     }
   }
 
-  // Encrypt message using hybrid encryption (AES + RSA) - FIXED TO USE OUR OWN PUBLIC KEY
+  // Encrypt message using hybrid encryption (AES + RSA)
   async encryptMessage(message, recipientUsername) {
     try {
       if (!this.publicKey) {
@@ -177,9 +177,7 @@ class EncryptionService {
 
       console.log(`🔐 Encrypting message for ${recipientUsername}...`);
 
-      // FIXED: Use our own public key for encryption since we're the ones who will decrypt it
-      // In a real E2E system, you'd use the recipient's public key, but for this demo
-      // where we're storing encrypted messages and decrypting them ourselves, we use our own key
+      // Use our own public key for encryption (for demo purposes)
       const encryptionKey = this.publicKey;
 
       // Generate AES key for this message
@@ -199,7 +197,7 @@ class EncryptionService {
         messageData
       );
 
-      // Export AES key and encrypt it with our RSA public key
+      // Export AES key and encrypt it with RSA public key
       const aesKeyRaw = await window.crypto.subtle.exportKey("raw", aesKey);
       
       const encryptedAESKey = await window.crypto.subtle.encrypt(
@@ -215,12 +213,11 @@ class EncryptionService {
         encryptedMessage: this.arrayBufferToBase64(encryptedMessage),
         encryptedKey: this.arrayBufferToBase64(encryptedAESKey),
         iv: this.arrayBufferToBase64(iv),
-        timestamp: Date.now(),
-        encryptedBy: 'self' // Indicate this was encrypted with our own key
+        timestamp: Date.now()
       };
 
       const encryptedString = JSON.stringify(encryptedData);
-      console.log('🔐 Message encrypted successfully with our own key, length:', encryptedString.length);
+      console.log('🔐 Message encrypted successfully, length:', encryptedString.length);
       return encryptedString;
     } catch (error) {
       console.error('❌ Failed to encrypt message:', error);
@@ -228,7 +225,7 @@ class EncryptionService {
     }
   }
 
-  // Decrypt message using hybrid decryption - IMPROVED ERROR HANDLING AND LOGGING
+  // Decrypt message - COMPLETELY REWRITTEN TO HANDLE YOUR DATABASE FORMAT
   async decryptMessage(encryptedMessageString) {
     try {
       if (!this.privateKey) {
@@ -241,17 +238,17 @@ class EncryptionService {
         throw new Error('Invalid encrypted message format - not a string');
       }
 
-      console.log('🔓 Attempting to decrypt message of length:', encryptedMessageString.length);
+      console.log('🔓 Attempting to decrypt message...');
       console.log('🔓 Message preview:', encryptedMessageString.substring(0, 200) + '...');
 
-      // Parse encrypted data with better error handling
+      // Parse encrypted data
       let encryptedData;
       try {
         encryptedData = JSON.parse(encryptedMessageString);
         console.log('🔓 Successfully parsed JSON, keys found:', Object.keys(encryptedData));
       } catch (parseError) {
         console.error('❌ Failed to parse encrypted message JSON:', parseError);
-        throw new Error('Invalid encrypted message JSON format');
+        return '[Invalid encrypted message format]';
       }
 
       // Validate encrypted data structure
@@ -264,70 +261,83 @@ class EncryptionService {
           hasEncryptedKey: typeof encryptedData.encryptedKey,
           hasIv: typeof encryptedData.iv
         });
-        throw new Error('Missing required encryption fields');
+        return '[Missing required encryption fields]';
       }
 
       console.log('🔓 All required fields present, proceeding with decryption...');
-      console.log('🔓 Encrypted by:', encryptedData.encryptedBy || 'unknown');
 
-      // Decrypt AES key with our RSA private key
-      console.log('🔓 Decrypting AES key...');
-      const encryptedAESKey = this.base64ToArrayBuffer(encryptedData.encryptedKey);
-      const aesKeyRaw = await window.crypto.subtle.decrypt(
-        {
-          name: "RSA-OAEP",
-        },
-        this.privateKey,
-        encryptedAESKey
-      );
-      console.log('🔓 AES key decrypted successfully');
+      try {
+        // Decrypt AES key with our RSA private key
+        console.log('🔓 Decrypting AES key...');
+        const encryptedAESKey = this.base64ToArrayBuffer(encryptedData.encryptedKey);
+        
+        const aesKeyRaw = await window.crypto.subtle.decrypt(
+          {
+            name: "RSA-OAEP",
+          },
+          this.privateKey,
+          encryptedAESKey
+        );
+        console.log('🔓 AES key decrypted successfully');
 
-      // Import the decrypted AES key
-      console.log('🔓 Importing AES key...');
-      const aesKey = await window.crypto.subtle.importKey(
-        "raw",
-        aesKeyRaw,
-        {
-          name: "AES-GCM",
-        },
-        false,
-        ["decrypt"]
-      );
-      console.log('🔓 AES key imported successfully');
+        // Import the decrypted AES key
+        console.log('🔓 Importing AES key...');
+        const aesKey = await window.crypto.subtle.importKey(
+          "raw",
+          aesKeyRaw,
+          {
+            name: "AES-GCM",
+          },
+          false,
+          ["decrypt"]
+        );
+        console.log('🔓 AES key imported successfully');
 
-      // Decrypt the message with AES
-      console.log('🔓 Decrypting message content...');
-      const encryptedMessage = this.base64ToArrayBuffer(encryptedData.encryptedMessage);
-      const iv = this.base64ToArrayBuffer(encryptedData.iv);
+        // Decrypt the message with AES
+        console.log('🔓 Decrypting message content...');
+        const encryptedMessage = this.base64ToArrayBuffer(encryptedData.encryptedMessage);
+        const iv = this.base64ToArrayBuffer(encryptedData.iv);
 
-      const decryptedMessage = await window.crypto.subtle.decrypt(
-        {
-          name: "AES-GCM",
-          iv: iv,
-        },
-        aesKey,
-        encryptedMessage
-      );
-      console.log('🔓 Message content decrypted successfully');
+        const decryptedMessage = await window.crypto.subtle.decrypt(
+          {
+            name: "AES-GCM",
+            iv: iv,
+          },
+          aesKey,
+          encryptedMessage
+        );
+        console.log('🔓 Message content decrypted successfully');
 
-      // Convert back to string
-      const decoder = new TextDecoder();
-      const decryptedText = decoder.decode(decryptedMessage);
-      
-      console.log('🔓 Final decrypted text:', decryptedText);
-      return decryptedText;
+        // Convert back to string
+        const decoder = new TextDecoder();
+        const decryptedText = decoder.decode(decryptedMessage);
+        
+        console.log('🔓 Final decrypted text:', decryptedText);
+        return decryptedText;
+
+      } catch (cryptoError) {
+        console.error('❌ Crypto operation failed:', cryptoError);
+        
+        // Check if this might be a key mismatch issue
+        if (cryptoError.name === 'OperationError' || cryptoError.message.includes('decrypt')) {
+          console.warn('⚠️ Decryption failed - this message was likely encrypted with a different key');
+          return '[Message encrypted with different key - cannot decrypt]';
+        }
+        
+        throw cryptoError;
+      }
+
     } catch (error) {
       console.error('❌ Failed to decrypt message:', error.message);
       console.error('❌ Full error:', error);
-      console.error('❌ Error stack:', error.stack);
       
-      // Return a more specific error message
+      // Return a more specific error message based on the error type
       if (error.message.includes('JSON')) {
         return '[Invalid encrypted message format]';
-      } else if (error.message.includes('decrypt') || error.name === 'OperationError') {
-        return '[Decryption failed - wrong key?]';
       } else if (error.message.includes('base64')) {
         return '[Invalid message encoding]';
+      } else if (error.name === 'OperationError') {
+        return '[Decryption failed - wrong key?]';
       } else {
         return '[Message could not be decrypted]';
       }
@@ -391,7 +401,7 @@ class EncryptionService {
     console.log('🔐 All encryption keys cleared');
   }
 
-  // Store contact's public key - SIMPLIFIED FOR DEMO
+  // Store contact's public key
   storeContactPublicKey(username, publicKeyJwk) {
     try {
       // Store in memory
@@ -408,12 +418,11 @@ class EncryptionService {
     }
   }
 
-  // Get contact's public key - SIMPLIFIED FOR DEMO
-  getContactPublicKey(username) {
+  // Get contact's public key
+  async getContactPublicKey(username) {
     try {
       // For this demo, we'll always return our own public key
-      // This simulates having exchanged keys with all contacts
-      return this.getPublicKeyJwk();
+      return await this.getPublicKeyJwk();
     } catch (error) {
       console.error('❌ Failed to get contact public key:', error);
       return null;
@@ -433,13 +442,11 @@ class EncryptionService {
     }
   }
 
-  // Exchange public keys with a contact - SIMPLIFIED FOR DEMO
+  // Exchange public keys with a contact
   async exchangePublicKeys(contactUsername) {
     try {
       console.log(`🔐 Simulating key exchange with ${contactUsername}`);
       
-      // For this demo, we'll just mark that we have exchanged keys
-      // In reality, this would involve a secure key exchange protocol
       const ourPublicKey = await this.getPublicKeyJwk();
       this.storeContactPublicKey(contactUsername, ourPublicKey);
       
@@ -456,10 +463,9 @@ class EncryptionService {
     return Array.from(this.contactKeys.keys());
   }
 
-  // Check if we have a contact's public key - ALWAYS TRUE FOR DEMO
+  // Check if we have a contact's public key
   hasContactKey(username) {
-    // For this demo, we always have keys (using our own key for encryption/decryption)
-    return true;
+    return true; // For demo, always return true
   }
 }
 
