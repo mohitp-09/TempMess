@@ -117,54 +117,35 @@ class WebSocketService {
     }
 
     try {
-      // Get recipient's public key
-      let recipientPublicKey = encryptionService.getContactPublicKey(receiver);
+      console.log('🔐 Attempting to encrypt message before sending...');
       
-      if (!recipientPublicKey) {
-        // If we don't have the recipient's public key, send unencrypted
-        console.warn('⚠️ No public key found for recipient, sending unencrypted');
-        
-        const payload = {
-          sender: sender,
-          receiver: receiver,
-          message: message,
-          isEncrypted: false
-        };
-
-        console.log('📤 Sending unencrypted message:', payload);
-        this.stompClient.send('/app/sendPrivateMessage', {}, JSON.stringify(payload));
-        return;
-      }
-
       // Try to encrypt the message
-      try {
-        console.log('🔐 Encrypting message...');
-        const encryptedData = await encryptionService.encryptMessage(message, recipientPublicKey);
-        
-        const payload = {
+      const encryptedMessage = await encryptionService.encryptMessage(message, receiver);
+      
+      let payload;
+      
+      if (encryptedMessage) {
+        // Send encrypted message
+        payload = {
           sender: sender,
           receiver: receiver,
-          message: JSON.stringify(encryptedData), // Send encrypted data as JSON string
+          message: encryptedMessage, // This is the encrypted JSON string
           isEncrypted: true
         };
-
         console.log('📤 Sending encrypted message');
-        this.stompClient.send('/app/sendPrivateMessage', {}, JSON.stringify(payload));
-        console.log('✅ Encrypted message sent');
-      } catch (encryptError) {
-        console.error('❌ Failed to encrypt message:', encryptError);
-        
-        // Fallback: send unencrypted
-        console.warn('⚠️ Falling back to unencrypted message');
-        const payload = {
+      } else {
+        // Fallback: send unencrypted if encryption fails
+        console.warn('⚠️ Encryption failed, sending unencrypted message');
+        payload = {
           sender: sender,
           receiver: receiver,
           message: message,
           isEncrypted: false
         };
-
-        this.stompClient.send('/app/sendPrivateMessage', {}, JSON.stringify(payload));
       }
+
+      this.stompClient.send('/app/sendPrivateMessage', {}, JSON.stringify(payload));
+      console.log('✅ Message sent to backend');
     } catch (error) {
       console.error('❌ Failed to send message:', error);
       throw error;

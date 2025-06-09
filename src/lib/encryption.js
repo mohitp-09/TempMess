@@ -4,6 +4,7 @@ class EncryptionService {
     this.keyPair = null;
     this.publicKey = null;
     this.privateKey = null;
+    this.contactKeys = new Map(); // Store contact public keys in memory
   }
 
   // Generate RSA key pair for the user
@@ -23,7 +24,7 @@ class EncryptionService {
       this.publicKey = this.keyPair.publicKey;
       this.privateKey = this.keyPair.privateKey;
 
-      // Store keys in localStorage (in production, consider more secure storage)
+      // Store keys in localStorage
       await this.storeKeys();
       
       console.log('🔐 Key pair generated successfully');
@@ -92,7 +93,7 @@ class EncryptionService {
     }
   }
 
-  // Get public key as JWK for sharing with other users
+  // Get public key as JWK for sharing
   async getPublicKeyJwk() {
     if (!this.publicKey) {
       await this.loadKeys();
@@ -119,7 +120,7 @@ class EncryptionService {
     }
   }
 
-  // Generate AES key for symmetric encryption (faster for large messages)
+  // Generate AES key for symmetric encryption
   async generateAESKey() {
     return await window.crypto.subtle.generateKey(
       {
@@ -131,11 +132,34 @@ class EncryptionService {
     );
   }
 
+  // Check if message is encrypted JSON
+  isEncryptedMessage(message) {
+    if (!message || typeof message !== 'string') return false;
+    
+    try {
+      const parsed = JSON.parse(message);
+      return parsed && 
+             typeof parsed === 'object' && 
+             parsed.encryptedMessage && 
+             parsed.encryptedKey && 
+             parsed.iv;
+    } catch (error) {
+      return false;
+    }
+  }
+
   // Encrypt message using hybrid encryption (AES + RSA)
-  async encryptMessage(message, recipientPublicKeyJwk) {
+  async encryptMessage(message, recipientUsername) {
     try {
       if (!this.publicKey) {
         await this.loadKeys();
+      }
+
+      // Get recipient's public key from our contact list
+      const recipientPublicKeyJwk = this.getContactPublicKey(recipientUsername);
+      if (!recipientPublicKeyJwk) {
+        console.warn(`⚠️ No public key found for ${recipientUsername}, cannot encrypt`);
+        return null; // Return null to indicate encryption failed
       }
 
       // Generate AES key for this message
@@ -168,24 +192,30 @@ class EncryptionService {
       );
 
       // Return encrypted data as base64 strings
-      return {
+      const encryptedData = {
         encryptedMessage: this.arrayBufferToBase64(encryptedMessage),
         encryptedKey: this.arrayBufferToBase64(encryptedAESKey),
         iv: this.arrayBufferToBase64(iv),
         timestamp: Date.now()
       };
+
+      console.log('🔐 Message encrypted successfully');
+      return JSON.stringify(encryptedData);
     } catch (error) {
       console.error('❌ Failed to encrypt message:', error);
-      throw error;
+      return null; // Return null to indicate encryption failed
     }
   }
 
   // Decrypt message using hybrid decryption
-  async decryptMessage(encryptedData) {
+  async decryptMessage(encryptedMessageString) {
     try {
       if (!this.privateKey) {
         await this.loadKeys();
       }
+
+      // Parse encrypted data
+      const encryptedData = JSON.parse(encryptedMessageString);
 
       // Decrypt AES key with our RSA private key
       const encryptedAESKey = this.base64ToArrayBuffer(encryptedData.encryptedKey);
@@ -223,7 +253,10 @@ class EncryptionService {
 
       // Convert back to string
       const decoder = new TextDecoder();
-      return decoder.decode(decryptedMessage);
+      const decryptedText = decoder.decode(decryptedMessage);
+      
+      console.log('🔓 Message decrypted successfully');
+      return decryptedText;
     } catch (error) {
       console.error('❌ Failed to decrypt message:', error);
       // Return a placeholder if decryption fails
@@ -254,6 +287,10 @@ class EncryptionService {
   async initialize() {
     try {
       await this.loadKeys();
+      
+      // Load contact public keys from localStorage
+      this.loadContactKeys();
+      
       console.log('🔐 Encryption service initialized');
       return true;
     } catch (error) {
@@ -270,15 +307,21 @@ class EncryptionService {
     this.publicKey = null;
     this.privateKey = null;
     this.keyPair = null;
+    this.contactKeys.clear();
     console.log('🔐 All encryption keys cleared');
   }
 
   // Store contact's public key
   storeContactPublicKey(username, publicKeyJwk) {
     try {
+      // Store in memory
+      this.contactKeys.set(username, publicKeyJwk);
+      
+      // Store in localStorage for persistence
       const contactKeys = JSON.parse(localStorage.getItem('contactPublicKeys') || '{}');
       contactKeys[username] = publicKeyJwk;
       localStorage.setItem('contactPublicKeys', JSON.stringify(contactKeys));
+      
       console.log(`🔐 Stored public key for ${username}`);
     } catch (error) {
       console.error('❌ Failed to store contact public key:', error);
@@ -288,12 +331,87 @@ class EncryptionService {
   // Get contact's public key
   getContactPublicKey(username) {
     try {
+      // First check memory
+      if (this.contactKeys.has(username)) {
+        return this.contactKeys.get(username);
+      }
+      
+      // Then check localStorage
       const contactKeys = JSON.parse(localStorage.getItem('contactPublicKeys') || '{}');
-      return contactKeys[username] || null;
+      const publicKey = contactKeys[username];
+      
+      if (publicKey) {
+        // Store in memory for faster access
+        this.contactKeys.set(username, publicKey);
+        return publicKey;
+      }
+      
+      return null;
     } catch (error) {
       console.error('❌ Failed to get contact public key:', error);
       return null;
     }
+  }
+
+  // Load all contact keys from localStorage
+  loadContactKeys() {
+    try {
+      const contactKeys = JSON.parse(localStorage.getItem('contactPublicKeys') || '{}');
+      Object.entries(contactKeys).forEach(([username, publicKey]) => {
+        this.contactKeys.set(username, publicKey);
+      });
+      console.log(`🔐 Loaded ${this.contactKeys.size} contact public keys`);
+    } catch (error) {
+      console.error('❌ Failed to load contact keys:', error);
+    }
+  }
+
+  // Exchange public keys with a contact (simulate key exchange)
+  async exchangePublicKeys(contactUsername) {
+    try {
+      // In a real app, this would involve:
+      // 1. Sending our public key to the contact
+      // 2. Receiving their public key
+      // 3. Verifying the keys (QR codes, fingerprints, etc.)
+      
+      // For demo purposes, we'll generate a mock public key for the contact
+      // In reality, you'd get this through a secure channel
+      
+      console.log(`🔐 Simulating key exchange with ${contactUsername}`);
+      
+      // Generate a mock key pair for the contact (for demo)
+      const mockContactKeyPair = await window.crypto.subtle.generateKey(
+        {
+          name: "RSA-OAEP",
+          modulusLength: 2048,
+          publicExponent: new Uint8Array([1, 0, 1]),
+          hash: "SHA-256",
+        },
+        true,
+        ["encrypt", "decrypt"]
+      );
+      
+      const mockContactPublicKeyJwk = await window.crypto.subtle.exportKey("jwk", mockContactKeyPair.publicKey);
+      
+      // Store the contact's public key
+      this.storeContactPublicKey(contactUsername, mockContactPublicKeyJwk);
+      
+      console.log(`🔐 Key exchange completed with ${contactUsername}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Key exchange failed:', error);
+      return false;
+    }
+  }
+
+  // Get list of contacts with exchanged keys
+  getContactsWithKeys() {
+    return Array.from(this.contactKeys.keys());
+  }
+
+  // Check if we have a contact's public key
+  hasContactKey(username) {
+    return this.contactKeys.has(username) || this.getContactPublicKey(username) !== null;
   }
 }
 

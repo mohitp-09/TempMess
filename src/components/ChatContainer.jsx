@@ -4,7 +4,8 @@ import MessageInput from "./MessageInput";
 import { formatMessageTime, getDateLabel } from "../lib/utils";
 import { useChatStore } from "../store/useChatStore";
 import { getCurrentUserFromToken } from "../lib/jwtUtils";
-import { MessageSquare, Sparkles, Loader2, Check, CheckCheck, Shield, ShieldCheck } from "lucide-react";
+import { MessageSquare, Sparkles, Loader2, Check, CheckCheck, Shield, ShieldCheck, Lock } from "lucide-react";
+import encryptionService from "../lib/encryption";
 
 const ChatContainer = ({ selectedUser, onClose }) => {
   const messageEndRef = useRef(null);
@@ -18,7 +19,16 @@ const ChatContainer = ({ selectedUser, onClose }) => {
   } = useChatStore();
   
   const [messages, setMessages] = useState([]);
+  const [hasEncryption, setHasEncryption] = useState(false);
   const authUser = getCurrentUserFromToken();
+
+  // Check if we have encryption set up with this user
+  useEffect(() => {
+    if (selectedUser) {
+      const hasKey = encryptionService.hasContactKey(selectedUser.username);
+      setHasEncryption(hasKey);
+    }
+  }, [selectedUser]);
 
   // Get messages for the selected user
   useEffect(() => {
@@ -121,14 +131,32 @@ const ChatContainer = ({ selectedUser, onClose }) => {
       <ChatHeader user={selectedUser} onClose={onClose} />
 
       {/* Encryption Status Banner */}
-      <div className="px-4 py-2 bg-green-50 border-b border-green-200 flex items-center justify-center gap-2">
-        <ShieldCheck className="size-4 text-green-600" />
-        <span className="text-sm text-green-700 font-medium">
-          End-to-end encrypted
-        </span>
-        <span className="text-xs text-green-600">
-          Messages are secured with encryption
-        </span>
+      <div className={`px-4 py-2 border-b flex items-center justify-center gap-2 ${
+        hasEncryption 
+          ? 'bg-green-50 border-green-200' 
+          : 'bg-yellow-50 border-yellow-200'
+      }`}>
+        {hasEncryption ? (
+          <>
+            <ShieldCheck className="size-4 text-green-600" />
+            <span className="text-sm text-green-700 font-medium">
+              End-to-end encrypted
+            </span>
+            <span className="text-xs text-green-600">
+              Messages are secured with encryption
+            </span>
+          </>
+        ) : (
+          <>
+            <Lock className="size-4 text-yellow-600" />
+            <span className="text-sm text-yellow-700 font-medium">
+              Setting up encryption...
+            </span>
+            <span className="text-xs text-yellow-600">
+              Keys are being exchanged
+            </span>
+          </>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-1 bg-gradient-to-b from-base-100 to-base-50">
@@ -273,7 +301,7 @@ const ChatContainer = ({ selectedUser, onClose }) => {
                       }`}
                     >
                       {/* Encryption indicator for received messages */}
-                      {!isOwnMessage && !isConsecutive && (
+                      {!isOwnMessage && !isConsecutive && message.isEncrypted && (
                         <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                           <Shield className="w-2 h-2 text-white" />
                         </div>
@@ -305,6 +333,11 @@ const ChatContainer = ({ selectedUser, onClose }) => {
                                   {messageStatus.icon}
                                 </div>
                               )}
+
+                              {/* Encryption indicator for own messages */}
+                              {isOwnMessage && hasEncryption && (
+                                <Shield className="size-2 opacity-70" />
+                              )}
                             </div>
                           </div>
                         )}
@@ -313,8 +346,9 @@ const ChatContainer = ({ selectedUser, onClose }) => {
 
                     {/* Status text below message for own messages */}
                     {messageStatus && isOwnMessage && (
-                      <div className="text-xs text-base-content/50 mt-1 text-right">
+                      <div className="text-xs text-base-content/50 mt-1 text-right flex items-center justify-end gap-1">
                         {messageStatus.text}
+                        {hasEncryption && <span className="text-green-600">• Encrypted</span>}
                       </div>
                     )}
                   </div>

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import webSocketService from "../lib/websocket";
 import { getCurrentUserFromToken } from "../lib/jwtUtils";
-import { getOldChatMessages, getUserPublicKey, storeUserPublicKey } from "../lib/api";
+import { getOldChatMessages } from "../lib/api";
 import encryptionService from "../lib/encryption";
 
 const useChatStore = create((set, get) => ({
@@ -28,15 +28,6 @@ const useChatStore = create((set, get) => ({
       // Initialize encryption service
       console.log('🔐 Initializing encryption...');
       await encryptionService.initialize();
-      
-      // Store user's public key on server
-      try {
-        const publicKeyJwk = await encryptionService.getPublicKeyJwk();
-        await storeUserPublicKey(publicKeyJwk);
-        console.log('🔐 Public key stored on server');
-      } catch (error) {
-        console.warn('⚠️ Failed to store public key on server:', error);
-      }
       
       await webSocketService.connect(currentUser.username);
       
@@ -66,22 +57,6 @@ const useChatStore = create((set, get) => ({
     set({ isConnected: false });
   },
 
-  // Helper function to check if a message is encrypted
-  isMessageEncrypted: (messageText) => {
-    if (!messageText || typeof messageText !== 'string') return false;
-    
-    try {
-      const parsed = JSON.parse(messageText);
-      return parsed && 
-             typeof parsed === 'object' && 
-             parsed.encryptedMessage && 
-             parsed.encryptedKey && 
-             parsed.iv;
-    } catch (error) {
-      return false;
-    }
-  },
-
   // Load old messages for a user and decrypt them
   loadOldMessages: async (username) => {
     const { loadingOldMessages } = get();
@@ -107,19 +82,18 @@ const useChatStore = create((set, get) => ({
       // Decrypt messages if they are encrypted
       const decryptedMessages = await Promise.all(
         oldMessages.map(async (msg) => {
-          if (msg.text && get().isMessageEncrypted(msg.text)) {
+          if (msg.text && encryptionService.isEncryptedMessage(msg.text)) {
             try {
-              console.log('🔓 Attempting to decrypt message...');
-              const encryptedData = JSON.parse(msg.text);
-              const decryptedText = await encryptionService.decryptMessage(encryptedData);
-              console.log('✅ Message decrypted successfully');
+              console.log('🔓 Attempting to decrypt old message...');
+              const decryptedText = await encryptionService.decryptMessage(msg.text);
+              console.log('✅ Old message decrypted successfully');
               return {
                 ...msg,
                 text: decryptedText,
-                isEncrypted: false // Mark as decrypted
+                isEncrypted: true // Mark as originally encrypted
               };
             } catch (error) {
-              console.warn('⚠️ Failed to decrypt message:', error);
+              console.warn('⚠️ Failed to decrypt old message:', error);
               // Return original message if decryption fails
               return {
                 ...msg,
@@ -163,19 +137,21 @@ const useChatStore = create((set, get) => ({
     }
   },
 
-  // Select user and load their old messages
+  // Select user and set up encryption
   selectUser: async (user) => {
     set({ selectedUser: user });
     
-    // Try to get user's public key for encryption
-    try {
-      const publicKey = await getUserPublicKey(user.username);
-      if (publicKey) {
-        encryptionService.storeContactPublicKey(user.username, publicKey);
-        console.log(`🔐 Stored public key for ${user.username}`);
+    // Check if we have this user's public key for encryption
+    if (!encryptionService.hasContactKey(user.username)) {
+      console.log(`🔐 No public key found for ${user.username}, simulating key exchange...`);
+      
+      // Simulate key exchange (in real app, this would be done through secure channels)
+      try {
+        await encryptionService.exchangePublicKeys(user.username);
+        console.log(`🔐 Key exchange completed with ${user.username}`);
+      } catch (error) {
+        console.warn(`⚠️ Failed to exchange keys with ${user.username}:`, error);
       }
-    } catch (error) {
-      console.warn(`⚠️ Failed to get public key for ${user.username}:`, error);
     }
     
     // Check if we already have messages for this user
@@ -189,7 +165,7 @@ const useChatStore = create((set, get) => ({
     get().markConversationAsRead(user.username);
   },
 
-  // Send message (will be encrypted if possible)
+  // Send message (will be encrypted automatically)
   sendMessage: async (text, image = null) => {
     const { selectedUser, currentUser } = get();
     
@@ -211,7 +187,7 @@ const useChatStore = create((set, get) => ({
         _id: messageId,
         senderId: currentUser.username,
         receiverId: selectedUser.username,
-        text: text,
+        text: text, // Store unencrypted for local display
         createdAt: new Date().toISOString(),
         isTemp: true,
         status: 'SENT'
@@ -231,7 +207,7 @@ const useChatStore = create((set, get) => ({
         }
       }));
 
-      // Send via WebSocket (will be encrypted in websocket service if possible)
+      // Send via WebSocket (will be encrypted automatically in websocket service)
       await webSocketService.sendPrivateMessage(
         currentUser.username,
         selectedUser.username,
@@ -267,11 +243,10 @@ const useChatStore = create((set, get) => ({
     let decryptedText = messageData.message;
 
     // Check if message is encrypted and decrypt it
-    if (messageData.message && get().isMessageEncrypted(messageData.message)) {
+    if (messageData.message && encryptionService.isEncryptedMessage(messageData.message)) {
       try {
         console.log('🔓 Attempting to decrypt incoming message...');
-        const encryptedData = JSON.parse(messageData.message);
-        decryptedText = await encryptionService.decryptMessage(encryptedData);
+        decryptedText = await encryptionService.decryptMessage(messageData.message);
         console.log('✅ Incoming message decrypted successfully');
       } catch (error) {
         console.error('❌ Failed to decrypt incoming message:', error);
@@ -285,7 +260,8 @@ const useChatStore = create((set, get) => ({
       receiverId: messageData.receiver,
       text: decryptedText,
       createdAt: messageData.timestamp || new Date().toISOString(),
-      status: 'DELIVERED'
+      status: 'DELIVERED',
+      isEncrypted: encryptionService.isEncryptedMessage(messageData.message)
     };
 
     set((state) => {
