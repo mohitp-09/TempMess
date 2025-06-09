@@ -132,18 +132,29 @@ class EncryptionService {
     );
   }
 
-  // Check if message is encrypted JSON
+  // Check if message is encrypted JSON - IMPROVED VALIDATION
   isEncryptedMessage(message) {
-    if (!message || typeof message !== 'string') return false;
+    if (!message || typeof message !== 'string') {
+      return false;
+    }
+    
+    // Check if it looks like encrypted JSON
+    if (!message.startsWith('{') || !message.includes('encryptedMessage')) {
+      return false;
+    }
     
     try {
       const parsed = JSON.parse(message);
       return parsed && 
              typeof parsed === 'object' && 
-             parsed.encryptedMessage && 
-             parsed.encryptedKey && 
-             parsed.iv;
+             typeof parsed.encryptedMessage === 'string' && 
+             typeof parsed.encryptedKey === 'string' && 
+             typeof parsed.iv === 'string' &&
+             parsed.encryptedMessage.length > 0 &&
+             parsed.encryptedKey.length > 0 &&
+             parsed.iv.length > 0;
     } catch (error) {
+      console.warn('⚠️ Failed to parse potential encrypted message:', error);
       return false;
     }
   }
@@ -199,23 +210,45 @@ class EncryptionService {
         timestamp: Date.now()
       };
 
-      console.log('🔐 Message encrypted successfully');
-      return JSON.stringify(encryptedData);
+      const encryptedString = JSON.stringify(encryptedData);
+      console.log('🔐 Message encrypted successfully, length:', encryptedString.length);
+      return encryptedString;
     } catch (error) {
       console.error('❌ Failed to encrypt message:', error);
       return null; // Return null to indicate encryption failed
     }
   }
 
-  // Decrypt message using hybrid decryption
+  // Decrypt message using hybrid decryption - IMPROVED ERROR HANDLING
   async decryptMessage(encryptedMessageString) {
     try {
       if (!this.privateKey) {
         await this.loadKeys();
       }
 
-      // Parse encrypted data
-      const encryptedData = JSON.parse(encryptedMessageString);
+      // Validate input
+      if (!encryptedMessageString || typeof encryptedMessageString !== 'string') {
+        throw new Error('Invalid encrypted message format');
+      }
+
+      // Parse encrypted data with better error handling
+      let encryptedData;
+      try {
+        encryptedData = JSON.parse(encryptedMessageString);
+      } catch (parseError) {
+        console.error('❌ Failed to parse encrypted message JSON:', parseError);
+        throw new Error('Invalid encrypted message JSON format');
+      }
+
+      // Validate encrypted data structure
+      if (!encryptedData || 
+          typeof encryptedData.encryptedMessage !== 'string' ||
+          typeof encryptedData.encryptedKey !== 'string' ||
+          typeof encryptedData.iv !== 'string') {
+        throw new Error('Missing required encryption fields');
+      }
+
+      console.log('🔓 Attempting to decrypt message...');
 
       // Decrypt AES key with our RSA private key
       const encryptedAESKey = this.base64ToArrayBuffer(encryptedData.encryptedKey);
@@ -255,32 +288,50 @@ class EncryptionService {
       const decoder = new TextDecoder();
       const decryptedText = decoder.decode(decryptedMessage);
       
-      console.log('🔓 Message decrypted successfully');
+      console.log('🔓 Message decrypted successfully:', decryptedText.substring(0, 50) + '...');
       return decryptedText;
     } catch (error) {
-      console.error('❌ Failed to decrypt message:', error);
-      // Return a placeholder if decryption fails
-      return '[Message could not be decrypted]';
+      console.error('❌ Failed to decrypt message:', error.message);
+      console.error('❌ Full error:', error);
+      
+      // Return a more specific error message
+      if (error.message.includes('JSON')) {
+        return '[Invalid encrypted message format]';
+      } else if (error.message.includes('decrypt')) {
+        return '[Decryption failed - wrong key?]';
+      } else {
+        return '[Message could not be decrypted]';
+      }
     }
   }
 
-  // Utility functions for base64 conversion
+  // Utility functions for base64 conversion - IMPROVED ERROR HANDLING
   arrayBufferToBase64(buffer) {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
+    try {
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return window.btoa(binary);
+    } catch (error) {
+      console.error('❌ Failed to convert ArrayBuffer to base64:', error);
+      throw error;
     }
-    return window.btoa(binary);
   }
 
   base64ToArrayBuffer(base64) {
-    const binary = window.atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
+    try {
+      const binary = window.atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return bytes.buffer;
+    } catch (error) {
+      console.error('❌ Failed to convert base64 to ArrayBuffer:', error);
+      throw error;
     }
-    return bytes.buffer;
   }
 
   // Initialize encryption service

@@ -57,7 +57,7 @@ const useChatStore = create((set, get) => ({
     set({ isConnected: false });
   },
 
-  // Load old messages for a user and decrypt them
+  // Load old messages for a user and decrypt them - IMPROVED DECRYPTION
   loadOldMessages: async (username) => {
     const { loadingOldMessages } = get();
     
@@ -79,30 +79,47 @@ const useChatStore = create((set, get) => ({
       
       console.log('📥 Loaded old messages:', oldMessages.length);
       
-      // Decrypt messages if they are encrypted
+      // Decrypt messages if they are encrypted - IMPROVED LOGIC
       const decryptedMessages = await Promise.all(
-        oldMessages.map(async (msg) => {
-          if (msg.text && encryptionService.isEncryptedMessage(msg.text)) {
+        oldMessages.map(async (msg, index) => {
+          // Check if message text exists and is potentially encrypted
+          if (!msg.text || typeof msg.text !== 'string') {
+            console.warn(`⚠️ Message ${index} has no text or invalid text format`);
+            return {
+              ...msg,
+              text: '[Empty message]'
+            };
+          }
+
+          // Check if it's an encrypted message
+          if (encryptionService.isEncryptedMessage(msg.text)) {
             try {
-              console.log('🔓 Attempting to decrypt old message...');
+              console.log(`🔓 Attempting to decrypt old message ${index}...`);
               const decryptedText = await encryptionService.decryptMessage(msg.text);
-              console.log('✅ Old message decrypted successfully');
+              console.log(`✅ Old message ${index} decrypted successfully`);
               return {
                 ...msg,
                 text: decryptedText,
                 isEncrypted: true // Mark as originally encrypted
               };
             } catch (error) {
-              console.warn('⚠️ Failed to decrypt old message:', error);
-              // Return original message if decryption fails
+              console.warn(`⚠️ Failed to decrypt old message ${index}:`, error);
+              // Return with error message if decryption fails
               return {
                 ...msg,
-                text: '[Message could not be decrypted]'
+                text: '[Message could not be decrypted]',
+                isEncrypted: true,
+                decryptionFailed: true
               };
             }
           }
+          
           // Return message as-is if not encrypted
-          return msg;
+          console.log(`📝 Message ${index} is not encrypted, keeping as plain text`);
+          return {
+            ...msg,
+            isEncrypted: false
+          };
         })
       );
 
@@ -110,6 +127,8 @@ const useChatStore = create((set, get) => ({
       const sortedMessages = decryptedMessages.sort((a, b) => 
         new Date(a.createdAt) - new Date(b.createdAt)
       );
+
+      console.log(`📋 Processed ${sortedMessages.length} messages for ${username}`);
 
       set((state) => ({
         messages: {
@@ -231,7 +250,7 @@ const useChatStore = create((set, get) => ({
     }
   },
 
-  // Handle incoming messages (decrypt them if needed)
+  // Handle incoming messages (decrypt them if needed) - IMPROVED DECRYPTION
   handleIncomingMessage: async (messageData) => {
     const { currentUser } = get();
     if (!currentUser) return;
@@ -241,16 +260,19 @@ const useChatStore = create((set, get) => ({
       : messageData.sender;
 
     let decryptedText = messageData.message;
+    let isEncrypted = false;
 
     // Check if message is encrypted and decrypt it
     if (messageData.message && encryptionService.isEncryptedMessage(messageData.message)) {
       try {
         console.log('🔓 Attempting to decrypt incoming message...');
         decryptedText = await encryptionService.decryptMessage(messageData.message);
+        isEncrypted = true;
         console.log('✅ Incoming message decrypted successfully');
       } catch (error) {
         console.error('❌ Failed to decrypt incoming message:', error);
         decryptedText = '[Message could not be decrypted]';
+        isEncrypted = true;
       }
     }
 
@@ -261,7 +283,7 @@ const useChatStore = create((set, get) => ({
       text: decryptedText,
       createdAt: messageData.timestamp || new Date().toISOString(),
       status: 'DELIVERED',
-      isEncrypted: encryptionService.isEncryptedMessage(messageData.message)
+      isEncrypted: isEncrypted
     };
 
     set((state) => {
