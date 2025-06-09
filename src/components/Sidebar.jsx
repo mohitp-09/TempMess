@@ -2,15 +2,18 @@ import { Plus, Search, Users, MessageCircle, Bell, UsersRound, X, AlignLeft, Spa
 import { useState, useRef, useEffect } from "react";
 import { getAllFriends } from "../lib/api";
 import { useChatStore } from "../store/useChatStore";
+import { useGroupChatStore } from "../store/useGroupChatStore";
 import AddUserModal from "./AddUserModal";
+import CreateGroupModal from "./CreateGroupModal";
 import toast from "react-hot-toast";
 
-const Sidebar = ({ onSelectUser, selectedUserId }) => {
+const Sidebar = ({ onSelectUser, onSelectGroup, selectedUserId, selectedGroupId, activeTab: parentActiveTab, onTabChange }) => {
   const [showDrawer, setShowDrawer] = useState(false);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState(parentActiveTab || "all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [friends, setFriends] = useState([]);
   const [isLoadingFriends, setIsLoadingFriends] = useState(true);
   const drawerRef = useRef(null);
@@ -22,6 +25,15 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
     getUnreadCountForUser,
     selectUser 
   } = useChatStore();
+
+  // Get group chat store functions
+  const {
+    groups,
+    getLastMessageForGroup,
+    getUnreadCountForGroup,
+    selectGroup,
+    refreshGroups
+  } = useGroupChatStore();
 
   const tabs = [
     { id: "all", label: "All", icon: <MessageCircle className="size-4" /> },
@@ -36,7 +48,7 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
       icon: <UsersRound className="size-5" />,
       color: "text-blue-600",
       onClick: () => {
-        console.log("New Group clicked");
+        setShowCreateGroupModal(true);
         setShowDrawer(false);
       }
     },
@@ -88,10 +100,54 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
     };
   }, []);
 
-  const filteredFriends = friends.filter(friend =>
-    friend.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    friend.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Handle tab changes
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    if (onTabChange) {
+      onTabChange(tabId);
+    }
+  };
+
+  // Filter items based on active tab and search query
+  const getFilteredItems = () => {
+    let items = [];
+
+    if (activeTab === "groups") {
+      items = groups.map(group => ({
+        ...group,
+        type: 'group',
+        fullName: group.name,
+        profilePic: '/avatar.png', // Default group avatar
+        isOnline: true // Groups are always "online"
+      }));
+    } else {
+      items = friends.map(friend => ({
+        ...friend,
+        type: 'user'
+      }));
+
+      if (activeTab === "unread") {
+        items = items.filter(item => {
+          const unreadCount = item.type === 'group' 
+            ? getUnreadCountForGroup(item.id)
+            : getUnreadCountForUser(item.username);
+          return unreadCount > 0;
+        });
+      }
+    }
+
+    // Apply search filter
+    if (searchQuery) {
+      items = items.filter(item =>
+        item.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.username && item.username.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+    }
+
+    return items;
+  };
+
+  const filteredItems = getFilteredItems();
 
   const toggleDrawer = () => {
     setShowDrawer(!showDrawer);
@@ -101,12 +157,16 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
     setIsExpanded(!isExpanded);
   };
 
-  const handleUserSelect = async (user) => {
-    // Update chat store
-    await selectUser(user);
-    
-    // Update parent component
-    onSelectUser(user);
+  const handleItemSelect = async (item) => {
+    if (item.type === 'group') {
+      // Select group
+      await selectGroup(item);
+      onSelectGroup(item);
+    } else {
+      // Select user
+      await selectUser(item);
+      onSelectUser(item);
+    }
     
     // Close sidebar on mobile
     if (window.innerWidth < 1024) {
@@ -129,6 +189,11 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
       minute: '2-digit',
       hour12: true
     });
+  };
+
+  const handleGroupCreated = () => {
+    // Refresh groups list when a new group is created
+    refreshGroups();
   };
 
   useEffect(() => {
@@ -173,7 +238,7 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-base-content/40" />
                   <input
                     type="text"
-                    placeholder="Search friends"
+                    placeholder={activeTab === "groups" ? "Search groups" : "Search friends"}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-base-200/80 backdrop-blur-sm rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 border border-base-300/50 transition-all duration-200"
@@ -201,7 +266,7 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 className={`flex-1 min-w-0 px-3 py-2 rounded-xl flex items-center justify-center gap-2 text-sm transition-all duration-200 ${
                   activeTab === tab.id
                     ? "bg-primary/10 text-primary font-medium shadow-sm"
@@ -216,7 +281,7 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
         </div>
 
         <div className="overflow-y-auto w-full py-2 flex-1">
-          {isLoadingFriends ? (
+          {isLoadingFriends && activeTab !== "groups" ? (
             <div className="flex items-center justify-center py-12">
               <div className="flex flex-col items-center gap-3">
                 <div className="animate-spin size-8 border-2 border-primary border-t-transparent rounded-full"></div>
@@ -225,16 +290,22 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
                 </span>
               </div>
             </div>
-          ) : filteredFriends.length > 0 ? (
-            filteredFriends.map((friend) => {
-              const lastMessage = getLastMessageForUser(friend.username);
-              const unreadCount = getUnreadCountForUser(friend.username);
-              const isSelected = selectedUserId === friend._id;
+          ) : filteredItems.length > 0 ? (
+            filteredItems.map((item) => {
+              const lastMessage = item.type === 'group' 
+                ? getLastMessageForGroup(item.id)
+                : getLastMessageForUser(item.username);
+              const unreadCount = item.type === 'group'
+                ? getUnreadCountForGroup(item.id)
+                : getUnreadCountForUser(item.username);
+              const isSelected = item.type === 'group' 
+                ? selectedGroupId === item.id
+                : selectedUserId === item._id;
 
               return (
                 <button
-                  key={friend._id}
-                  onClick={() => handleUserSelect(friend)}
+                  key={item.type === 'group' ? `group-${item.id}` : `user-${item._id}`}
+                  onClick={() => handleItemSelect(item)}
                   className={`w-full p-3 mx-2 mb-1 flex items-center gap-3 rounded-xl transition-all duration-200 group ${
                     isSelected 
                       ? "bg-primary/10 border border-primary/20 shadow-sm" 
@@ -243,26 +314,33 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
                 >
                   <div className="relative mx-auto lg:mx-0 flex-shrink-0">
                     <div className="size-12 rounded-full ring-2 ring-base-300/50 shadow-sm overflow-hidden">
-                      <img
-                        src={friend.profilePic}
-                        alt={friend.fullName}
-                        className="size-12 object-cover rounded-full"
-                        onError={(e) => {
-                          e.target.src = '/avatar.png';
-                        }}
-                      />
+                      {item.type === 'group' ? (
+                        <div className="size-12 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                          <UsersRound className="size-6 text-primary" />
+                        </div>
+                      ) : (
+                        <img
+                          src={item.profilePic}
+                          alt={item.fullName}
+                          className="size-12 object-cover rounded-full"
+                          onError={(e) => {
+                            e.target.src = '/avatar.png';
+                          }}
+                        />
+                      )}
                     </div>
-                    {friend.isOnline && (
+                    {item.isOnline && item.type !== 'group' && (
                      <span className="absolute bottom-0 right-0 h-3.5 w-3.5 bg-green-500 rounded-full ring-2 ring-white shadow-sm" />
                     )}
                   </div>
 
                   <div className={`${!isExpanded && 'hidden'} lg:block text-left min-w-0 flex-1`}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className={`font-medium truncate transition-colors ${
+                      <span className={`font-medium truncate transition-colors flex items-center gap-2 ${
                         isSelected ? 'text-primary' : 'text-base-content group-hover:text-base-content'
                       }`}>
-                        {friend.fullName}
+                        {item.type === 'group' && <UsersRound className="size-3" />}
+                        {item.fullName}
                       </span>
                       {lastMessage && (
                         <span className="text-xs text-base-content/40 font-medium flex-shrink-0 ml-2">
@@ -272,7 +350,7 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-base-content/60 truncate leading-relaxed pr-2">
-                        {lastMessage ? lastMessage.text : 'Start a conversation'}
+                        {lastMessage ? lastMessage.text : item.type === 'group' ? 'Start group conversation' : 'Start a conversation'}
                       </span>
                       {unreadCount > 0 && (
                         <span className="flex items-center justify-center min-w-5 h-5 text-xs font-bold bg-primary text-primary-content rounded-full px-1.5 shadow-sm flex-shrink-0">
@@ -288,14 +366,26 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
             <div className="text-center text-base-content/40 py-12 px-4">
               <div className="flex flex-col items-center gap-4">
                 <div className="size-16 rounded-full bg-base-200/50 flex items-center justify-center">
-                  <Users className="size-8 opacity-40" />
+                  {activeTab === "groups" ? (
+                    <UsersRound className="size-8 opacity-40" />
+                  ) : (
+                    <Users className="size-8 opacity-40" />
+                  )}
                 </div>
                 <div className={`${!isExpanded && 'hidden'} lg:block`}>
                   <p className="text-sm font-medium mb-1">
-                    {searchQuery ? 'No friends found' : 'No friends yet'}
+                    {searchQuery 
+                      ? `No ${activeTab === "groups" ? "groups" : "friends"} found` 
+                      : activeTab === "groups" 
+                        ? 'No groups yet' 
+                        : 'No friends yet'}
                   </p>
                   <p className="text-xs opacity-75 leading-relaxed">
-                    {searchQuery ? 'Try a different search term' : 'Add friends to start chatting'}
+                    {searchQuery 
+                      ? 'Try a different search term' 
+                      : activeTab === "groups"
+                        ? 'Create a group to start chatting'
+                        : 'Add friends to start chatting'}
                   </p>
                 </div>
               </div>
@@ -326,10 +416,16 @@ const Sidebar = ({ onSelectUser, selectedUserId }) => {
         )}
       </aside>
 
-      {/* Add User Modal */}
+      {/* Modals */}
       <AddUserModal 
         isOpen={showAddUserModal} 
         onClose={() => setShowAddUserModal(false)} 
+      />
+      
+      <CreateGroupModal 
+        isOpen={showCreateGroupModal} 
+        onClose={() => setShowCreateGroupModal(false)}
+        onGroupCreated={handleGroupCreated}
       />
     </>
   );

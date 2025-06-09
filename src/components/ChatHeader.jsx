@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X, Phone, Video, Search, ChevronRight, ChevronDown, MoreVertical } from "lucide-react";
+import { X, Phone, Video, Search, ChevronRight, ChevronDown, MoreVertical, Users } from "lucide-react";
 
-const ChatHeader = ({ user, onClose }) => {
+const ChatHeader = ({ user, onClose, isGroup = false }) => {
   const [showSearch, setShowSearch] = useState(false);
   const [expandActions, setExpandActions] = useState(false);
 
@@ -25,21 +25,39 @@ const ChatHeader = ({ user, onClose }) => {
         <div className="flex items-center gap-4">
           <div className="relative">
             <div className="size-12 rounded-full ring-2 ring-base-300/50 shadow-md overflow-hidden">
-              <img
-                src={user.profilePic}
-                alt={user.fullName}
-                className="size-12 rounded-full object-cover"
-              />
-              {user.isOnline && (
+              {isGroup ? (
+                <div className="size-12 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                  <Users className="size-6 text-primary" />
+                </div>
+              ) : (
+                <img
+                  src={user.profilePic}
+                  alt={user.fullName}
+                  className="size-12 rounded-full object-cover"
+                />
+              )}
+              {user.isOnline && !isGroup && (
                 <span className="absolute bottom-0 right-0 size-3.5 bg-green-500 rounded-full ring-2 ring-white shadow-sm" />
               )}
             </div>
           </div>
           <div>
-            <h3 className="font-semibold text-base-content text-lg">{user.fullName}</h3>
+            <h3 className="font-semibold text-base-content text-lg flex items-center gap-2">
+              {isGroup && <Users className="size-4" />}
+              {user.fullName}
+            </h3>
             <p className="text-sm text-base-content/60 flex items-center gap-2">
-              <span className={`size-2 rounded-full ${user.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-              {user.isOnline ? "Online" : "Offline"}
+              {isGroup ? (
+                <>
+                  <Users className="size-3" />
+                  Group Chat
+                </>
+              ) : (
+                <>
+                  <span className={`size-2 rounded-full ${user.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                  {user.isOnline ? "Online" : "Offline"}
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -66,18 +84,22 @@ const ChatHeader = ({ user, onClose }) => {
             >
               <Search className="size-5 text-base-content/70 group-hover:text-base-content transition-colors" />
             </button>
-            <button
-              className="p-2.5 rounded-xl hover:bg-base-200/80 transition-all duration-200 group"
-              aria-label="Voice call"
-            >
-              <Phone className="size-5 text-base-content/70 group-hover:text-base-content transition-colors" />
-            </button>
-            <button
-              className="p-2.5 rounded-xl hover:bg-base-200/80 transition-all duration-200 group"
-              aria-label="Video call"
-            >
-              <Video className="size-5 text-base-content/70 group-hover:text-base-content transition-colors" />
-            </button>
+            {!isGroup && (
+              <>
+                <button
+                  className="p-2.5 rounded-xl hover:bg-base-200/80 transition-all duration-200 group"
+                  aria-label="Voice call"
+                >
+                  <Phone className="size-5 text-base-content/70 group-hover:text-base-content transition-colors" />
+                </button>
+                <button
+                  className="p-2.5 rounded-xl hover:bg-base-200/80 transition-all duration-200 group"
+                  aria-label="Video call"
+                >
+                  <Video className="size-5 text-base-content/70 group-hover:text-base-content transition-colors" />
+                </button>
+              </>
+            )}
           </div>
 
           {/* Mobile view: collapsible menu */}
@@ -92,20 +114,24 @@ const ChatHeader = ({ user, onClose }) => {
                   <Search className="size-4 mr-3 text-base-content/70" />
                   <span className="text-sm font-medium">Search</span>
                 </button>
-                <button
-                  className="flex items-center w-full px-4 py-3 hover:bg-base-200/80 transition-colors"
-                  aria-label="Voice call"
-                >
-                  <Phone className="size-4 mr-3 text-base-content/70" />
-                  <span className="text-sm font-medium">Call</span>
-                </button>
-                <button
-                  className="flex items-center w-full px-4 py-3 hover:bg-base-200/80 transition-colors"
-                  aria-label="Video call"
-                >
-                  <Video className="size-4 mr-3 text-base-content/70" />
-                  <span className="text-sm font-medium">Video</span>
-                </button>
+                {!isGroup && (
+                  <>
+                    <button
+                      className="flex items-center w-full px-4 py-3 hover:bg-base-200/80 transition-colors"
+                      aria-label="Voice call"
+                    >
+                      <Phone className="size-4 mr-3 text-base-content/70" />
+                      <span className="text-sm font-medium">Call</span>
+                    </button>
+                    <button
+                      className="flex items-center w-full px-4 py-3 hover:bg-base-200/80 transition-colors"
+                      aria-label="Video call"
+                    >
+                      <Video className="size-4 mr-3 text-base-content/70" />
+                      <span className="text-sm font-medium">Video</span>
+                    </button>
+                  </>
+                )}
               </div>
             ) : null}
 
