@@ -7,7 +7,6 @@ class WebSocketService {
     this.connected = false;
     this.messageHandlers = new Map();
     this.readReceiptHandlers = new Map();
-    this.statusHandlers = new Map();
     this.currentUsername = null;
   }
 
@@ -35,9 +34,6 @@ class WebSocketService {
             
             // Subscribe to read receipts
             this.subscribeToReadReceipts(username);
-            
-            // Subscribe to user status updates
-            this.subscribeToUserStatus();
             
             resolve(frame);
           },
@@ -114,36 +110,6 @@ class WebSocketService {
     }
   }
 
-  subscribeToUserStatus() {
-    if (!this.stompClient || !this.connected) {
-      console.warn('⚠️ Cannot subscribe to user status: not connected');
-      return;
-    }
-
-    try {
-      const destination = `/topic/user-status`;
-      console.log('📡 Subscribing to user status updates:', destination);
-      
-      this.stompClient.subscribe(destination, (message) => {
-        try {
-          const statusData = JSON.parse(message.body);
-          console.log('📨 Received status update:', statusData);
-          
-          // Notify all status handlers
-          this.statusHandlers.forEach((handler) => {
-            handler(statusData);
-          });
-        } catch (error) {
-          console.error('❌ Error parsing status update:', error);
-        }
-      });
-      
-      console.log('✅ Subscribed to user status updates');
-    } catch (error) {
-      console.error('❌ Status subscription failed:', error);
-    }
-  }
-
   sendPrivateMessage(sender, receiver, message) {
     if (!this.stompClient || !this.connected) {
       throw new Error('Not connected to WebSocket');
@@ -174,23 +140,6 @@ class WebSocketService {
     console.log('✅ Read receipt sent');
   }
 
-  updateUserStatus(status) {
-    if (!this.stompClient || !this.connected) {
-      console.warn('⚠️ Cannot update status: not connected');
-      return;
-    }
-
-    const payload = {
-      username: this.currentUsername,
-      status: status, // 'online' or 'offline'
-      timestamp: new Date().toISOString()
-    };
-
-    console.log('📤 Updating status:', payload);
-    this.stompClient.send('/app/updateUserStatus', {}, JSON.stringify(payload));
-    console.log('✅ Status update sent');
-  }
-
   addMessageHandler(id, handler) {
     this.messageHandlers.set(id, handler);
   }
@@ -207,19 +156,8 @@ class WebSocketService {
     this.readReceiptHandlers.delete(id);
   }
 
-  addStatusHandler(id, handler) {
-    this.statusHandlers.set(id, handler);
-  }
-
-  removeStatusHandler(id) {
-    this.statusHandlers.delete(id);
-  }
-
   disconnect() {
     if (this.stompClient && this.connected) {
-      // Send offline status before disconnecting
-      this.updateUserStatus('offline');
-      
       this.stompClient.disconnect();
       this.connected = false;
       this.stompClient = null;
