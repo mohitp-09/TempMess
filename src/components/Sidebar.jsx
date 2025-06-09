@@ -23,7 +23,8 @@ const Sidebar = ({ onSelectUser, onSelectGroup, selectedUserId, selectedGroupId,
   const { 
     getLastMessageForUser, 
     getUnreadCountForUser,
-    selectUser 
+    selectUser,
+    getUserStatus
   } = useChatStore();
 
   // Get group chat store functions
@@ -70,7 +71,18 @@ const Sidebar = ({ onSelectUser, onSelectGroup, selectedUserId, selectedGroupId,
     try {
       const friendsList = await getAllFriends();
       console.log('Fetched friends:', friendsList);
-      setFriends(friendsList);
+      
+      // Update friends with real-time status
+      const friendsWithStatus = friendsList.map(friend => {
+        const status = getUserStatus(friend.username);
+        return {
+          ...friend,
+          isOnline: status.isOnline || friend.isOnline || false,
+          lastSeen: status.lastSeen
+        };
+      });
+      
+      setFriends(friendsWithStatus);
     } catch (error) {
       console.error('Failed to fetch friends:', error);
       toast.error('Failed to load friends list');
@@ -84,6 +96,24 @@ const Sidebar = ({ onSelectUser, onSelectGroup, selectedUserId, selectedGroupId,
   useEffect(() => {
     fetchFriends();
   }, []);
+
+  // Update friends status periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFriends(prevFriends => 
+        prevFriends.map(friend => {
+          const status = getUserStatus(friend.username);
+          return {
+            ...friend,
+            isOnline: status.isOnline || friend.isOnline || false,
+            lastSeen: status.lastSeen
+          };
+        })
+      );
+    }, 2000); // Update every 2 seconds
+
+    return () => clearInterval(interval);
+  }, [getUserStatus]);
 
   // Listen for friend request acceptance to refresh friends list
   useEffect(() => {
@@ -330,7 +360,7 @@ const Sidebar = ({ onSelectUser, onSelectGroup, selectedUserId, selectedGroupId,
                       )}
                     </div>
                     {item.isOnline && item.type !== 'group' && (
-                     <span className="absolute bottom-0 right-0 h-3.5 w-3.5 bg-green-500 rounded-full ring-2 ring-white shadow-sm" />
+                     <span className="absolute bottom-0 right-0 h-3.5 w-3.5 bg-green-500 rounded-full ring-2 ring-white shadow-sm animate-pulse" />
                     )}
                   </div>
 

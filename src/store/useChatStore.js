@@ -7,6 +7,7 @@ const useChatStore = create((set, get) => ({
   // State
   messages: {},
   messageStatuses: {}, // Track message statuses by message ID
+  userStatuses: {}, // Track online/offline status of users
   selectedUser: null,
   isConnected: false,
   isLoading: false,
@@ -33,9 +34,17 @@ const useChatStore = create((set, get) => ({
       webSocketService.addReadReceiptHandler('chatStore', (readReceiptData) => {
         get().handleReadReceipt(readReceiptData);
       });
+
+      webSocketService.addStatusHandler('chatStore', (statusData) => {
+        get().handleStatusUpdate(statusData);
+      });
       
       set({ isConnected: true, isLoading: false });
       console.log('✅ WebSocket ready');
+      
+      // Send online status
+      webSocketService.updateUserStatus('online');
+      
       return true;
     } catch (error) {
       console.error('❌ WebSocket failed:', error);
@@ -48,8 +57,37 @@ const useChatStore = create((set, get) => ({
   disconnectWebSocket: () => {
     webSocketService.removeMessageHandler('chatStore');
     webSocketService.removeReadReceiptHandler('chatStore');
+    webSocketService.removeStatusHandler('chatStore');
     webSocketService.disconnect();
     set({ isConnected: false });
+  },
+
+  // Handle status updates
+  handleStatusUpdate: (statusData) => {
+    console.log('📊 Processing status update:', statusData);
+    
+    set((state) => ({
+      userStatuses: {
+        ...state.userStatuses,
+        [statusData.username]: {
+          status: statusData.status,
+          lastSeen: statusData.timestamp,
+          isOnline: statusData.status === 'online'
+        }
+      }
+    }));
+  },
+
+  // Get user online status
+  getUserStatus: (username) => {
+    const { userStatuses } = get();
+    return userStatuses[username] || { isOnline: false, status: 'offline' };
+  },
+
+  // Update user status in friends list and selected user
+  updateUserInLists: (username, statusUpdate) => {
+    // This will be used by components to update their local state
+    // when they receive status updates
   },
 
   // Load old messages for a user
@@ -295,7 +333,7 @@ const useChatStore = create((set, get) => ({
     // Find all unread messages from the other user
     const unreadMessages = userMessages.filter(msg => 
       msg.senderId !== currentUser?.username && 
-      (!msg.status || msg.status !== 'READ')
+      (!msg.status || msg.status !== 'read')
     );
 
     // Mark each unread message as read

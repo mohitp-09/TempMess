@@ -1,9 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Phone, Video, Search, ChevronRight, ChevronDown, MoreVertical, Users } from "lucide-react";
+import { useChatStore } from "../store/useChatStore";
 
 const ChatHeader = ({ user, onClose, isGroup = false }) => {
   const [showSearch, setShowSearch] = useState(false);
   const [expandActions, setExpandActions] = useState(false);
+  const [userStatus, setUserStatus] = useState({ isOnline: user?.isOnline || false, lastSeen: null });
+  
+  const { getUserStatus } = useChatStore();
+
+  // Update user status when it changes
+  useEffect(() => {
+    if (!isGroup && user?.username) {
+      const status = getUserStatus(user.username);
+      setUserStatus({
+        isOnline: status.isOnline || user.isOnline || false,
+        lastSeen: status.lastSeen
+      });
+    }
+  }, [user, getUserStatus, isGroup]);
+
+  // Subscribe to status updates for this specific user
+  useEffect(() => {
+    if (!isGroup && user?.username) {
+      const interval = setInterval(() => {
+        const status = getUserStatus(user.username);
+        setUserStatus(prev => ({
+          isOnline: status.isOnline || user.isOnline || false,
+          lastSeen: status.lastSeen || prev.lastSeen
+        }));
+      }, 1000); // Check every second for status updates
+
+      return () => clearInterval(interval);
+    }
+  }, [user?.username, getUserStatus, isGroup]);
 
   const toggleSearch = () => {
     setShowSearch(!showSearch);
@@ -17,6 +47,42 @@ const ChatHeader = ({ user, onClose, isGroup = false }) => {
     if (!expandActions) {
       setShowSearch(false); // Close search when opening drawer
     }
+  };
+
+  const formatLastSeen = (lastSeen) => {
+    if (!lastSeen) return '';
+    
+    const now = new Date();
+    const lastSeenDate = new Date(lastSeen);
+    const diffInMinutes = Math.floor((now - lastSeenDate) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays}d ago`;
+    
+    return lastSeenDate.toLocaleDateString();
+  };
+
+  const getStatusText = () => {
+    if (isGroup) return 'Group Chat';
+    
+    if (userStatus.isOnline) {
+      return 'Online';
+    } else if (userStatus.lastSeen) {
+      return `Last seen ${formatLastSeen(userStatus.lastSeen)}`;
+    } else {
+      return 'Offline';
+    }
+  };
+
+  const getStatusColor = () => {
+    if (isGroup) return 'bg-primary';
+    return userStatus.isOnline ? 'bg-green-500' : 'bg-gray-400';
   };
 
   return (
@@ -36,8 +102,10 @@ const ChatHeader = ({ user, onClose, isGroup = false }) => {
                   className="size-12 rounded-full object-cover"
                 />
               )}
-              {user.isOnline && !isGroup && (
-                <span className="absolute bottom-0 right-0 size-3.5 bg-green-500 rounded-full ring-2 ring-white shadow-sm" />
+              {!isGroup && (
+                <span 
+                  className={`absolute bottom-0 right-0 size-3.5 ${getStatusColor()} rounded-full ring-2 ring-white shadow-sm transition-colors duration-300`}
+                />
               )}
             </div>
           </div>
@@ -46,7 +114,7 @@ const ChatHeader = ({ user, onClose, isGroup = false }) => {
               {isGroup && <Users className="size-4" />}
               {user.fullName}
             </h3>
-            <p className="text-sm text-base-content/60 flex items-center gap-2">
+            <p className="text-sm text-base-content/60 flex items-center gap-2 transition-all duration-300">
               {isGroup ? (
                 <>
                   <Users className="size-3" />
@@ -54,8 +122,10 @@ const ChatHeader = ({ user, onClose, isGroup = false }) => {
                 </>
               ) : (
                 <>
-                  <span className={`size-2 rounded-full ${user.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                  {user.isOnline ? "Online" : "Offline"}
+                  <span className={`size-2 rounded-full ${getStatusColor()} transition-colors duration-300`}></span>
+                  <span className="transition-all duration-300">
+                    {getStatusText()}
+                  </span>
                 </>
               )}
             </p>
