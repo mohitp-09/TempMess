@@ -268,7 +268,7 @@ const GroupInfoPage = ({ group, onBack }) => {
                       </div>
                       <p className="text-sm text-base-content/60 truncate">
                         {member.username === 'you' ? 'Radiating positivity in every moment! ✨' :
-                         member.username === 'akshat' ? "Haven't Mind For Thinking That" What is Good or Bad In This Work" :
+                         member.username === 'akshat' ? "Haven't Mind For Thinking That\" What is Good or Bad In This Work" :
                          member.username === 'arsh' ? 'Hey there! I am using WhatsApp.' :
                          member.username === 'hemant' ? 'Stress less and enjoy the best 😊😎' :
                          'Hey there! I am using MessUp.'}
