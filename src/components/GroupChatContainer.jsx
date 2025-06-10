@@ -134,25 +134,27 @@ const GroupChatContainer = ({ selectedGroup, onClose }) => {
           </button>
         </div>
         
-        {/* Members List */}
+        {/* Members List - FIXED: Added proper keys */}
         {showMembers && (
           <div className="mt-3 flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-            {groupMembers.map((member) => (
+            {groupMembers.map((member, index) => (
               <div
-                key={member.id}
+                key={member.id || member.username || `member-${index}`} // FIXED: Added unique key
                 className="flex items-center gap-2 bg-base-200/50 rounded-full px-3 py-1 text-sm"
               >
                 <div className="size-6 rounded-full overflow-hidden">
                   <img
-                    src={member.profilePic}
-                    alt={member.fullName}
+                    src={member.profilePic || '/avatar.png'}
+                    alt={member.fullName || member.username || 'Member'}
                     className="size-6 object-cover"
                     onError={(e) => {
                       e.target.src = '/avatar.png';
                     }}
                   />
                 </div>
-                <span className="text-base-content/80">{member.fullName}</span>
+                <span className="text-base-content/80">
+                  {member.fullName || member.username || 'Unknown Member'}
+                </span>
                 {member.username === authUser?.username && (
                   <span className="text-xs text-primary">(You)</span>
                 )}
@@ -241,7 +243,7 @@ const GroupChatContainer = ({ selectedGroup, onClose }) => {
             const isSystemMessage = message.senderId === 'System' || message.senderId === null;
 
             return (
-              <div key={message._id}>
+              <div key={message._id || `message-${index}`}> {/* FIXED: Added fallback key */}
                 {showDateLabel && (
                   <div className="flex items-center justify-center my-6">
                     <div className="bg-base-200/80 backdrop-blur-sm text-base-content/60 text-xs font-medium px-4 py-2 rounded-full shadow-sm">
